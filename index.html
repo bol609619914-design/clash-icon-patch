@@ -1,0 +1,946 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="给 Clash 订阅里缺失 icon 的策略组轻量补图标，并导出新的 YAML 配置。">
+  <title>Clash Icon Patch</title>
+  <script src="./vendor/js-yaml.min.js"></script>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #0f172a;
+      --muted: #64748b;
+      --soft: #f6f9ff;
+      --paper: #ffffff;
+      --line: #dbe7f5;
+      --field: #f8fbff;
+      --blue: #2563eb;
+      --blue-strong: #1d4ed8;
+      --blue-2: #e8f1ff;
+      --cyan: #06b6d4;
+      --red: #b42318;
+      --green: #057a55;
+      --green-2: #dcfce7;
+      --shadow: 0 20px 60px rgba(37, 99, 235, .12);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100dvh;
+      background:
+        radial-gradient(circle at 16% 8%, rgba(37, 99, 235, .13), transparent 28%),
+        radial-gradient(circle at 86% 14%, rgba(6, 182, 212, .14), transparent 30%),
+        linear-gradient(180deg, #ffffff 0%, #f3f7ff 48%, #eef6ff 100%),
+        var(--soft);
+      color: var(--ink);
+    }
+
+    button, input, textarea, select { font: inherit; min-width: 0; }
+
+    button {
+      min-height: 44px;
+      border: 1px solid transparent;
+      border-radius: 8px;
+      padding: 0 16px;
+      cursor: pointer;
+      color: var(--ink);
+      background: var(--paper);
+      transition: transform .18s ease, border-color .18s ease, background .18s ease, opacity .18s ease;
+    }
+
+    button:hover { transform: translateY(-1px); }
+    button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible {
+      outline: 3px solid rgba(37, 99, 235, .22);
+      outline-offset: 2px;
+    }
+    button:disabled { cursor: not-allowed; opacity: .5; transform: none; }
+
+    .shell {
+      width: min(1240px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 24px 0 32px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .brand-mark {
+      width: 42px;
+      height: 42px;
+      border-radius: 8px;
+      background:
+        linear-gradient(135deg, var(--blue), #4f8bff 58%, var(--cyan));
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.45);
+      display: grid;
+      place-items: center;
+      flex: 0 0 auto;
+    }
+
+    .brand-mark svg { width: 24px; height: 24px; color: white; }
+    .brand h1 { margin: 0; font-size: clamp(24px, 3vw, 42px); line-height: 1.05; letter-spacing: 0; }
+    .brand p { margin: 5px 0 0; color: var(--muted); font-size: 15px; }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.62);
+      min-height: 40px;
+      padding: 0 12px;
+      border-radius: 999px;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    .status-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--blue);
+      box-shadow: 0 0 0 5px rgba(37, 99, 235, .13);
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.05fr) minmax(360px, .95fr);
+      gap: 16px;
+      align-items: start;
+    }
+
+    .panel {
+      background: rgba(255,255,255,.88);
+      border: 1px solid rgba(219,231,245,.95);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      min-width: 0;
+      backdrop-filter: blur(12px);
+    }
+
+    .panel-header {
+      padding: 18px 18px 0;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .panel h2 {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.25;
+    }
+
+    .panel .hint {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .panel-body { padding: 18px; min-width: 0; }
+
+    .tabs {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      padding: 5px;
+      border-radius: 8px;
+      background: var(--field);
+      border: 1px solid var(--line);
+      margin-bottom: 14px;
+    }
+
+    .tab {
+      min-height: 38px;
+      border-radius: 6px;
+      border: 0;
+      background: transparent;
+      color: var(--muted);
+      padding: 0 10px;
+    }
+
+    .tab[aria-selected="true"] {
+      background: var(--paper);
+      color: var(--ink);
+      box-shadow: 0 1px 7px rgba(27,33,29,.08);
+    }
+
+    .source-pane { display: none; }
+    .source-pane.active { display: block; }
+
+    label {
+      display: block;
+      color: var(--ink);
+      font-weight: 650;
+      font-size: 14px;
+      margin-bottom: 8px;
+    }
+
+    textarea, input[type="url"], input[type="text"], select {
+      width: 100%;
+      border: 1px solid var(--line);
+      background: var(--field);
+      border-radius: 8px;
+      color: var(--ink);
+      padding: 12px 13px;
+    }
+
+    textarea {
+      min-height: 390px;
+      resize: vertical;
+      line-height: 1.45;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 13px;
+      display: block;
+      max-width: 100%;
+    }
+
+    .input-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px;
+    }
+
+    .file-drop {
+      display: grid;
+      place-items: center;
+      min-height: 210px;
+      border: 1px dashed #b6aa94;
+      background: rgba(248,251,255,.82);
+      border-radius: 8px;
+      text-align: center;
+      padding: 24px;
+    }
+
+    .file-drop input { max-width: 270px; }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      margin-top: 14px;
+    }
+
+    .primary {
+      background: var(--blue);
+      color: white;
+      border-color: var(--blue);
+      box-shadow: 0 10px 22px rgba(37, 99, 235, .2);
+    }
+
+    .primary:hover {
+      background: var(--blue-strong);
+      border-color: var(--blue-strong);
+    }
+
+    .secondary {
+      border-color: var(--line);
+      background: var(--paper);
+    }
+
+    .ghost {
+      border-color: transparent;
+      background: transparent;
+      color: var(--muted);
+    }
+
+    .danger-text { color: var(--red); }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .stat {
+      border: 1px solid var(--line);
+      background: linear-gradient(180deg, #ffffff, var(--field));
+      border-radius: 8px;
+      padding: 12px;
+      min-width: 0;
+    }
+
+    .stat strong {
+      display: block;
+      font-size: 25px;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .stat span {
+      display: block;
+      margin-top: 7px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .rules {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .rule {
+      min-height: 54px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.92);
+      border-radius: 8px;
+      display: grid;
+      grid-template-columns: 34px minmax(0, 1fr);
+      align-items: center;
+      gap: 10px;
+      padding: 9px;
+    }
+
+    .icon-frame {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: white;
+      border: 1px solid rgba(23,33,29,.1);
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      position: relative;
+      color: var(--blue);
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+
+    .icon-frame img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      position: relative;
+      z-index: 1;
+      background: white;
+    }
+
+    .icon-frame img.is-broken { display: none; }
+
+    .icon-fallback {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg, #eff6ff, #dbeafe);
+    }
+
+    .rule b {
+      display: block;
+      font-size: 13px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .rule span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .table-wrap {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      background: var(--paper);
+      max-width: 100%;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+      font-size: 13px;
+    }
+
+    th, td {
+      border-bottom: 1px solid var(--line);
+      padding: 10px 9px;
+      text-align: left;
+      vertical-align: middle;
+    }
+
+    th {
+      background: var(--field);
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    tr:last-child td { border-bottom: 0; }
+    .col-icon { width: 52px; }
+    .col-state { width: 86px; }
+    .col-type { width: 74px; }
+    .truncate {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 26px;
+      border-radius: 999px;
+      padding: 0 9px;
+      font-size: 12px;
+      border: 1px solid transparent;
+      white-space: nowrap;
+    }
+
+    .badge.added { background: var(--blue-2); color: #1d4ed8; border-color: #bfdbfe; }
+    .badge.kept { background: var(--green-2); color: #057a55; border-color: #bbf7d0; }
+    .badge.missed { background: #f8e4df; color: var(--red); border-color: #efc6be; }
+
+    .output {
+      min-height: 220px;
+      margin-top: 12px;
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 18px;
+      transform: translateX(-50%) translateY(16px);
+      background: #14211c;
+      color: white;
+      border-radius: 8px;
+      padding: 12px 14px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .2s ease, transform .2s ease;
+      max-width: min(520px, calc(100% - 32px));
+      box-shadow: 0 12px 30px rgba(0,0,0,.22);
+      font-size: 14px;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    @media (max-width: 980px) {
+      .layout { grid-template-columns: 1fr; }
+      textarea { min-height: 300px; }
+    }
+
+    @media (max-width: 640px) {
+      .shell { width: min(100% - 20px, 1240px); padding-top: 14px; }
+      .topbar { align-items: flex-start; flex-direction: column; }
+      .status-pill { white-space: normal; }
+      .stats { grid-template-columns: repeat(2, 1fr); }
+      .rules { grid-template-columns: 1fr; }
+      .input-row { grid-template-columns: 1fr; }
+      .tabs { grid-template-columns: 1fr; }
+      .panel-header { flex-direction: column; }
+      table { min-width: 560px; }
+      .table-wrap { overflow-x: auto; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M6 7.5h12M6 12h12M6 16.5h7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M16 15.5l1.5 1.5 3-3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div>
+          <h1>Clash Icon Patch</h1>
+          <p>给订阅里缺失图标的策略组补上 YouTube、Disney+、Netflix 等 icon 字段。</p>
+        </div>
+      </div>
+      <div class="status-pill" aria-live="polite"><span class="status-dot"></span><span id="statusText">等待配置导入</span></div>
+    </header>
+
+    <section class="layout">
+      <article class="panel">
+        <div class="panel-header">
+          <div>
+            <h2>导入订阅配置</h2>
+            <p class="hint">支持 Clash YAML。订阅 URL 若被浏览器 CORS 拦截，可以改用粘贴或上传。</p>
+          </div>
+          <button class="ghost" id="loadSample" type="button">载入示例</button>
+        </div>
+        <div class="panel-body">
+          <div class="tabs" role="tablist" aria-label="导入方式">
+            <button class="tab" type="button" role="tab" aria-selected="true" data-tab="paste">粘贴 YAML</button>
+            <button class="tab" type="button" role="tab" aria-selected="false" data-tab="url">订阅 URL</button>
+            <button class="tab" type="button" role="tab" aria-selected="false" data-tab="file">上传文件</button>
+          </div>
+
+          <div class="source-pane active" id="pane-paste">
+            <label for="yamlInput">Clash 配置内容</label>
+            <textarea id="yamlInput" spellcheck="false" placeholder="把机场订阅返回的 Clash YAML 粘贴到这里"></textarea>
+          </div>
+
+          <div class="source-pane" id="pane-url">
+            <label for="subUrl">订阅链接</label>
+            <div class="input-row">
+              <input id="subUrl" type="url" placeholder="https://example.com/sub?target=clash">
+              <button class="secondary" id="fetchUrl" type="button">拉取</button>
+            </div>
+            <p class="hint">纯前端只能访问允许跨域的订阅。失败时复制返回内容到“粘贴 YAML”即可继续。</p>
+          </div>
+
+          <div class="source-pane" id="pane-file">
+            <label for="fileInput">本地 YAML 文件</label>
+            <div class="file-drop">
+              <div>
+                <input id="fileInput" type="file" accept=".yaml,.yml,.txt,application/x-yaml,text/yaml,text/plain">
+                <p class="hint">选择 Clash 配置文件后会自动填入编辑区。</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="toolbar">
+            <button class="primary" id="patchBtn" type="button">补齐策略组图标</button>
+            <button class="secondary" id="copyBtn" type="button" disabled>复制结果</button>
+            <button class="secondary" id="downloadBtn" type="button" disabled>下载 YAML</button>
+            <button class="ghost" id="clearBtn" type="button">清空</button>
+          </div>
+        </div>
+      </article>
+
+      <aside class="panel">
+        <div class="panel-header">
+          <div>
+            <h2>补齐结果</h2>
+            <p class="hint">只修改 `proxy-groups` 里没有 `icon` 的策略组，已有图标会保留。</p>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div class="stats" aria-live="polite">
+            <div class="stat"><strong id="statTotal">0</strong><span>策略组</span></div>
+            <div class="stat"><strong id="statAdded">0</strong><span>新增</span></div>
+            <div class="stat"><strong id="statKept">0</strong><span>保留</span></div>
+            <div class="stat"><strong id="statMissed">0</strong><span>未匹配</span></div>
+          </div>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th class="col-icon">图标</th>
+                  <th>策略组</th>
+                  <th class="col-type">类型</th>
+                  <th class="col-state">状态</th>
+                </tr>
+              </thead>
+              <tbody id="previewRows">
+                <tr><td colspan="4" class="hint">导入配置后会在这里预览前 80 个策略组。</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <label for="outputYaml" style="margin-top:16px;">导出内容</label>
+          <textarea class="output" id="outputYaml" spellcheck="false" readonly placeholder="补齐后的 YAML 会显示在这里"></textarea>
+
+          <h2 style="margin:18px 0 0;font-size:16px;">内置匹配规则</h2>
+          <div class="rules" id="ruleList"></div>
+        </div>
+      </aside>
+    </section>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    const ICONS = [
+      { label: "YouTube", keys: ["youtube", "油管", "yt", "youtube music"], icon: "https://cdn.simpleicons.org/youtube/FF0000" },
+      { label: "Disney+", keys: ["disney", "disney+", "迪士尼", "disney plus"], icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Disney%2B.png" },
+      { label: "Netflix", keys: ["netflix", "奈飞", "奈飛", "nf"], icon: "https://cdn.simpleicons.org/netflix/E50914" },
+      { label: "TikTok", keys: ["tiktok", "tik tok", "抖音国际", "抖音國際"], icon: "https://cdn.simpleicons.org/tiktok/000000" },
+      { label: "Spotify", keys: ["spotify", "声田", "聲田"], icon: "https://cdn.simpleicons.org/spotify/1DB954" },
+      { label: "Telegram", keys: ["telegram", "tg", "电报", "電報"], icon: "https://cdn.simpleicons.org/telegram/26A5E4" },
+      { label: "OpenAI", keys: ["openai", "chatgpt", "chat gpt", "gpt", "ai", "人工智能"], icon: "https://cdn.jsdelivr.net/npm/simple-icons@latest/icons/openai.svg" },
+      { label: "GitHub", keys: ["github", "git hub"], icon: "https://cdn.simpleicons.org/github/181717" },
+      { label: "Google", keys: ["google", "谷歌", "gemini", "bard"], icon: "https://cdn.simpleicons.org/google/4285F4" },
+      { label: "Apple", keys: ["apple", "苹果", "蘋果", "icloud", "testflight"], icon: "https://cdn.simpleicons.org/apple/111111" },
+      { label: "Microsoft", keys: ["microsoft", "微软", "微軟", "bing", "copilot", "onedrive"], icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Microsoft.png" },
+      { label: "Amazon", keys: ["amazon", "prime video", "亚马逊", "亞馬遜"], icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Amazon.png" },
+      { label: "HBO Max", keys: ["hbo", "max", "hbomax"], icon: "https://cdn.simpleicons.org/hbo/000000" },
+      { label: "Hulu", keys: ["hulu"], icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Hulu.png" },
+      { label: "Bahamut", keys: ["bahamut", "巴哈", "巴哈姆特", "动画疯", "動畫瘋"], icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Bahamut.png" },
+      { label: "Bilibili", keys: ["bilibili", "哔哩", "嗶哩", "b站"], icon: "https://cdn.simpleicons.org/bilibili/00A1D6" },
+      { label: "Twitter / X", keys: ["twitter", "x.com", "推特"], icon: "https://cdn.simpleicons.org/x/111111" },
+      { label: "Instagram", keys: ["instagram", "ig"], icon: "https://cdn.simpleicons.org/instagram/E4405F" },
+      { label: "Facebook", keys: ["facebook", "meta", "脸书", "臉書"], icon: "https://cdn.simpleicons.org/facebook/0866FF" },
+      { label: "PayPal", keys: ["paypal", "贝宝", "貝寶"], icon: "https://cdn.simpleicons.org/paypal/003087" },
+      { label: "Crypto", keys: ["crypto", "binance", "coinbase", "okx", "加密", "币安", "幣安"], icon: "https://cdn.simpleicons.org/bitcoin/F7931A" },
+      { label: "Game", keys: ["game", "games", "steam", "epic", "xbox", "playstation", "游戏", "遊戲"], icon: "https://cdn.simpleicons.org/steam/111111" },
+      { label: "Download", keys: ["download", "下载", "下載", "pt", "bt"], icon: "https://cdn.simpleicons.org/aria/2A5CAA" },
+      { label: "Proxy", keys: ["proxy", "select", "节点选择", "節點選擇", "代理", "手动", "手動"], icon: "https://cdn.simpleicons.org/cloudflare/F38020" },
+      { label: "Direct", keys: ["direct", "直连", "直連", "国内", "國內"], icon: "https://cdn.simpleicons.org/homeassistant/41BDF5" },
+      { label: "Reject", keys: ["reject", "广告", "廣告", "adblock", "block"], icon: "https://cdn.simpleicons.org/ublockorigin/800000" },
+      { label: "Final", keys: ["final", "match", "漏网之鱼", "漏網之魚", "兜底"], icon: "https://cdn.simpleicons.org/target/CC0000" }
+    ];
+
+    const SAMPLE = `proxies:
+  - name: 香港 01
+    type: ss
+    server: hk.example.com
+    port: 443
+    cipher: aes-128-gcm
+    password: demo
+  - name: 日本 Netflix 02
+    type: trojan
+    server: jp.example.com
+    port: 443
+    password: demo
+  - name: 美国 03
+    type: vmess
+    server: us.example.com
+    port: 443
+    uuid: 00000000-0000-0000-0000-000000000000
+    alterId: 0
+    cipher: auto
+    icon: https://flagcdn.com/w80/us.png
+proxy-groups:
+  - name: YouTube
+    type: select
+    proxies:
+      - 香港 01
+      - 日本 Netflix 02
+      - 美国 03
+  - name: Disney+
+    type: select
+    proxies:
+      - 香港 01
+      - 日本 Netflix 02
+      - 美国 03
+  - name: Netflix
+    type: select
+    icon: https://cdn.simpleicons.org/netflix/E50914
+    proxies:
+      - 香港 01
+      - 日本 Netflix 02
+      - 美国 03
+  - name: OpenAI
+    type: select
+    proxies:
+      - 美国 03
+      - 日本 Netflix 02
+rules:
+  - DOMAIN-SUFFIX,youtube.com,YouTube
+  - DOMAIN-SUFFIX,disneyplus.com,Disney+
+  - DOMAIN-SUFFIX,netflix.com,Netflix
+  - DOMAIN-SUFFIX,openai.com,OpenAI
+  - MATCH,YouTube
+`;
+
+    const els = {
+      status: document.getElementById("statusText"),
+      yamlInput: document.getElementById("yamlInput"),
+      output: document.getElementById("outputYaml"),
+      rows: document.getElementById("previewRows"),
+      toast: document.getElementById("toast"),
+      copy: document.getElementById("copyBtn"),
+      download: document.getElementById("downloadBtn"),
+      stats: {
+        total: document.getElementById("statTotal"),
+        added: document.getElementById("statAdded"),
+        kept: document.getElementById("statKept"),
+        missed: document.getElementById("statMissed")
+      }
+    };
+
+    let patchedYaml = "";
+
+    function showToast(message, isError = false) {
+      els.toast.textContent = message;
+      els.toast.style.background = isError ? "#8f2f2a" : "#14211c";
+      els.toast.classList.add("show");
+      window.clearTimeout(showToast.timer);
+      showToast.timer = window.setTimeout(() => els.toast.classList.remove("show"), 3200);
+    }
+
+    function setStatus(message) {
+      els.status.textContent = message;
+    }
+
+    function switchTab(name) {
+      document.querySelectorAll(".tab").forEach(tab => {
+        tab.setAttribute("aria-selected", String(tab.dataset.tab === name));
+      });
+      document.querySelectorAll(".source-pane").forEach(pane => {
+        pane.classList.toggle("active", pane.id === `pane-${name}`);
+      });
+    }
+
+    function normalize(text) {
+      return String(text || "")
+        .toLowerCase()
+        .replace(/[｜|·_\-—–()[\]{}【】#]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+    }
+
+    function iconForGroup(group) {
+      const haystack = normalize([group.name, group.type].filter(Boolean).join(" "));
+      return ICONS.find(rule => rule.keys.some(key => haystack.includes(normalize(key))));
+    }
+
+    function parseYaml(raw) {
+      if (typeof jsyaml === "undefined") {
+        throw new Error("YAML 解析库没有加载成功，请确认 vendor/js-yaml.min.js 文件存在。");
+      }
+      const decoded = maybeDecodeBase64(raw.trim());
+      return jsyaml.load(decoded);
+    }
+
+    function maybeDecodeBase64(text) {
+      if (!text || /[\n:]/.test(text) || text.includes("proxies")) return text;
+      try {
+        const decoded = atob(text);
+        if (/proxies|proxy-groups|rules|server:/.test(decoded)) return decoded;
+      } catch (error) {
+        return text;
+      }
+      return text;
+    }
+
+    function patchConfig(config) {
+      if (!config || !Array.isArray(config["proxy-groups"])) {
+        throw new Error("没有找到 `proxy-groups` 数组。请确认这是 Clash YAML 配置。");
+      }
+
+      const rows = [];
+      const clone = structuredClone(config);
+      let added = 0;
+      let kept = 0;
+      let missed = 0;
+
+      clone["proxy-groups"].forEach(group => {
+        const existing = typeof group.icon === "string" && group.icon.trim();
+        const match = existing ? null : iconForGroup(group);
+        let state = "missed";
+        let icon = existing || "";
+        let label = "";
+
+        if (existing) {
+          kept += 1;
+          state = "kept";
+          label = "已有";
+        } else if (match) {
+          group.icon = match.icon;
+          icon = match.icon;
+          label = match.label;
+          added += 1;
+          state = "added";
+        } else {
+          missed += 1;
+        }
+
+        rows.push({
+          name: group.name || "(未命名策略组)",
+          type: group.type || "-",
+          icon,
+          label,
+          state
+        });
+      });
+
+      return { config: clone, rows, stats: { total: clone["proxy-groups"].length, added, kept, missed } };
+    }
+
+    function renderPreview(rows, stats) {
+      els.stats.total.textContent = stats.total;
+      els.stats.added.textContent = stats.added;
+      els.stats.kept.textContent = stats.kept;
+      els.stats.missed.textContent = stats.missed;
+
+      if (!rows.length) {
+        els.rows.innerHTML = `<tr><td colspan="4" class="hint">没有可预览策略组。</td></tr>`;
+        return;
+      }
+
+      els.rows.innerHTML = rows.slice(0, 80).map(row => {
+        const stateText = row.state === "added" ? "已补齐" : row.state === "kept" ? "保留" : "未匹配";
+        const img = renderIcon(row.icon, row.label || row.name);
+        return `<tr>
+          <td>${img}</td>
+          <td><div class="truncate" title="${escapeAttr(row.name)}">${escapeHtml(row.name)}</div></td>
+          <td>${escapeHtml(row.type)}</td>
+          <td><span class="badge ${row.state}">${stateText}</span></td>
+        </tr>`;
+      }).join("");
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, char => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        "\"": "&quot;",
+        "'": "&#039;"
+      }[char]));
+    }
+
+    function escapeAttr(value) {
+      return escapeHtml(value).replace(/`/g, "&#096;");
+    }
+
+    function shortLabel(value) {
+      const text = String(value || "?").replace(/[^\p{L}\p{N}+]/gu, "").trim();
+      return (text || "?").slice(0, 2);
+    }
+
+    function renderIcon(icon, label) {
+      const image = icon
+        ? `<img src="${escapeAttr(icon)}" alt="" loading="lazy" onerror="this.classList.add('is-broken')">`
+        : "";
+      return `<span class="icon-frame" aria-label="${escapeAttr(label || "图标")}">
+        <span class="icon-fallback">${escapeHtml(shortLabel(label))}</span>${image}
+      </span>`;
+    }
+
+    function runPatch() {
+      const raw = els.yamlInput.value.trim();
+      if (!raw) {
+        showToast("先导入或粘贴 Clash YAML。", true);
+        return;
+      }
+
+      try {
+        const config = parseYaml(raw);
+        const result = patchConfig(config);
+        patchedYaml = jsyaml.dump(result.config, {
+          lineWidth: 140,
+          noRefs: true,
+          sortKeys: false,
+          quotingType: '"'
+        });
+        els.output.value = patchedYaml;
+        els.copy.disabled = false;
+        els.download.disabled = false;
+        renderPreview(result.rows, result.stats);
+        setStatus(`已处理 ${result.stats.total} 个策略组，补齐 ${result.stats.added} 个`);
+        showToast("图标补齐完成。");
+      } catch (error) {
+        showToast(error.message || "解析失败，请检查 YAML。", true);
+        setStatus("解析失败");
+      }
+    }
+
+    async function fetchSubscription() {
+      const url = document.getElementById("subUrl").value.trim();
+      if (!url) {
+        showToast("先输入订阅链接。", true);
+        return;
+      }
+
+      setStatus("正在拉取订阅");
+      try {
+        const response = await fetch(url, { method: "GET" });
+        if (!response.ok) throw new Error(`订阅返回 HTTP ${response.status}`);
+        const text = await response.text();
+        els.yamlInput.value = maybeDecodeBase64(text);
+        switchTab("paste");
+        setStatus("订阅已导入");
+        showToast("订阅内容已导入编辑区。");
+      } catch (error) {
+        setStatus("订阅拉取失败");
+        showToast("浏览器无法拉取这个订阅，可能是 CORS 限制。请粘贴返回的 YAML 内容。", true);
+      }
+    }
+
+    function downloadYaml() {
+      if (!patchedYaml) return;
+      const blob = new Blob([patchedYaml], { type: "text/yaml;charset=utf-8" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "clash-with-icons.yaml";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(link.href);
+      showToast("已生成下载文件。");
+    }
+
+    function clearAll() {
+      els.yamlInput.value = "";
+      els.output.value = "";
+      patchedYaml = "";
+      els.copy.disabled = true;
+      els.download.disabled = true;
+      renderPreview([], { total: 0, added: 0, kept: 0, missed: 0 });
+      setStatus("等待配置导入");
+    }
+
+    function renderRules() {
+      document.getElementById("ruleList").innerHTML = ICONS.map(rule => `
+        <div class="rule">
+          ${renderIcon(rule.icon, rule.label)}
+          <div>
+            <b>${escapeHtml(rule.label)}</b>
+            <span>${escapeHtml(rule.keys.slice(0, 5).join(" / "))}</span>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    document.querySelectorAll(".tab").forEach(tab => {
+      tab.addEventListener("click", () => switchTab(tab.dataset.tab));
+    });
+
+    document.getElementById("patchBtn").addEventListener("click", runPatch);
+    document.getElementById("fetchUrl").addEventListener("click", fetchSubscription);
+    document.getElementById("downloadBtn").addEventListener("click", downloadYaml);
+    document.getElementById("clearBtn").addEventListener("click", clearAll);
+    document.getElementById("loadSample").addEventListener("click", () => {
+      els.yamlInput.value = SAMPLE;
+      switchTab("paste");
+      runPatch();
+    });
+
+    document.getElementById("copyBtn").addEventListener("click", async () => {
+      if (!patchedYaml) return;
+      await navigator.clipboard.writeText(patchedYaml);
+      showToast("结果已复制。");
+    });
+
+    document.getElementById("fileInput").addEventListener("change", async event => {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+      els.yamlInput.value = await file.text();
+      switchTab("paste");
+      setStatus(`已导入 ${file.name}`);
+      showToast("文件内容已导入编辑区。");
+    });
+
+    renderRules();
+  </script>
+</body>
+</html>
