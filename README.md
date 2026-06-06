@@ -25,6 +25,7 @@
 - 支持尝试拉取订阅 URL
 - 自动识别 Clash / Surfboard 格式
 - 保留已有 `icon`
+- 内置图标统一使用 Qure IconSet
 - 预览补齐结果
 - 一键复制或下载新的 YAML
 - 纯静态网页，无后端服务

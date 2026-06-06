@@ -665,34 +665,37 @@
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <script>
+    const QURE_BASE = "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/";
+    const qure = name => `${QURE_BASE}${encodeURIComponent(name)}`;
+
     const ICONS = [
-      { label: "YouTube", keys: ["youtube", "油管", "yt", "youtube music"], icon: "https://cdn.simpleicons.org/youtube/FF0000" },
-      { label: "Disney+", keys: ["disney", "disney+", "迪士尼", "disney plus"], icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Disney%2B.png" },
-      { label: "Netflix", keys: ["netflix", "奈飞", "奈飛", "nf"], icon: "https://cdn.simpleicons.org/netflix/E50914" },
-      { label: "TikTok", keys: ["tiktok", "tik tok", "抖音国际", "抖音國際"], icon: "https://cdn.simpleicons.org/tiktok/000000" },
-      { label: "Spotify", keys: ["spotify", "声田", "聲田"], icon: "https://cdn.simpleicons.org/spotify/1DB954" },
-      { label: "Telegram", keys: ["telegram", "tg", "电报", "電報"], icon: "https://cdn.simpleicons.org/telegram/26A5E4" },
-      { label: "OpenAI", keys: ["openai", "chatgpt", "chat gpt", "gpt", "ai", "人工智能"], icon: "https://cdn.jsdelivr.net/npm/simple-icons@latest/icons/openai.svg" },
-      { label: "GitHub", keys: ["github", "git hub"], icon: "https://cdn.simpleicons.org/github/181717" },
-      { label: "Google", keys: ["google", "谷歌", "gemini", "bard"], icon: "https://cdn.simpleicons.org/google/4285F4" },
-      { label: "Apple", keys: ["apple", "苹果", "蘋果", "icloud", "testflight"], icon: "https://cdn.simpleicons.org/apple/111111" },
-      { label: "Microsoft", keys: ["microsoft", "微软", "微軟", "bing", "copilot", "onedrive"], icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Microsoft.png" },
-      { label: "Amazon", keys: ["amazon", "prime video", "亚马逊", "亞馬遜"], icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Amazon.png" },
-      { label: "HBO Max", keys: ["hbo", "max", "hbomax"], icon: "https://cdn.simpleicons.org/hbo/000000" },
-      { label: "Hulu", keys: ["hulu"], icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Hulu.png" },
-      { label: "Bahamut", keys: ["bahamut", "巴哈", "巴哈姆特", "动画疯", "動畫瘋"], icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Bahamut.png" },
-      { label: "Bilibili", keys: ["bilibili", "哔哩", "嗶哩", "b站"], icon: "https://cdn.simpleicons.org/bilibili/00A1D6" },
-      { label: "Twitter / X", keys: ["twitter", "x.com", "推特"], icon: "https://cdn.simpleicons.org/x/111111" },
-      { label: "Instagram", keys: ["instagram", "ig"], icon: "https://cdn.simpleicons.org/instagram/E4405F" },
-      { label: "Facebook", keys: ["facebook", "meta", "脸书", "臉書"], icon: "https://cdn.simpleicons.org/facebook/0866FF" },
-      { label: "PayPal", keys: ["paypal", "贝宝", "貝寶"], icon: "https://cdn.simpleicons.org/paypal/003087" },
-      { label: "Crypto", keys: ["crypto", "binance", "coinbase", "okx", "加密", "币安", "幣安"], icon: "https://cdn.simpleicons.org/bitcoin/F7931A" },
-      { label: "Game", keys: ["game", "games", "steam", "epic", "xbox", "playstation", "游戏", "遊戲"], icon: "https://cdn.simpleicons.org/steam/111111" },
-      { label: "Download", keys: ["download", "下载", "下載", "pt", "bt"], icon: "https://cdn.simpleicons.org/aria/2A5CAA" },
-      { label: "Proxy", keys: ["proxy", "select", "节点选择", "節點選擇", "代理", "手动", "手動"], icon: "https://cdn.simpleicons.org/cloudflare/F38020" },
-      { label: "Direct", keys: ["direct", "直连", "直連", "国内", "國內"], icon: "https://cdn.simpleicons.org/homeassistant/41BDF5" },
-      { label: "Reject", keys: ["reject", "广告", "廣告", "adblock", "block"], icon: "https://cdn.simpleicons.org/ublockorigin/800000" },
-      { label: "Final", keys: ["final", "match", "漏网之鱼", "漏網之魚", "兜底"], icon: "https://cdn.simpleicons.org/target/CC0000" }
+      { label: "YouTube", keys: ["youtube", "油管", "yt", "youtube music"], icon: qure("YouTube.png") },
+      { label: "Disney+", keys: ["disney", "disney+", "迪士尼", "disney plus"], icon: qure("Disney+.png") },
+      { label: "Netflix", keys: ["netflix", "奈飞", "奈飛", "nf"], icon: qure("Netflix.png") },
+      { label: "TikTok", keys: ["tiktok", "tik tok", "抖音国际", "抖音國際"], icon: qure("TikTok.png") },
+      { label: "Spotify", keys: ["spotify", "声田", "聲田"], icon: qure("Spotify.png") },
+      { label: "Telegram", keys: ["telegram", "tg", "电报", "電報"], icon: qure("Telegram.png") },
+      { label: "OpenAI", keys: ["openai", "chatgpt", "chat gpt", "gpt", "ai", "人工智能"], icon: qure("ChatGPT.png") },
+      { label: "GitHub", keys: ["github", "git hub"], icon: qure("GitHub.png") },
+      { label: "Google", keys: ["google", "谷歌", "gemini", "bard"], icon: qure("Google.png") },
+      { label: "Apple", keys: ["apple", "苹果", "蘋果", "icloud", "testflight"], icon: qure("Apple.png") },
+      { label: "Microsoft", keys: ["microsoft", "微软", "微軟", "bing", "copilot", "onedrive"], icon: qure("Microsoft.png") },
+      { label: "Amazon", keys: ["amazon", "prime video", "亚马逊", "亞馬遜"], icon: qure("Amazon.png") },
+      { label: "HBO Max", keys: ["hbo", "max", "hbomax"], icon: qure("HBO_Max.png") },
+      { label: "Hulu", keys: ["hulu"], icon: qure("Hulu.png") },
+      { label: "Bahamut", keys: ["bahamut", "巴哈", "巴哈姆特", "动画疯", "動畫瘋"], icon: qure("Bahamut.png") },
+      { label: "Bilibili", keys: ["bilibili", "哔哩", "嗶哩", "b站"], icon: qure("bilibili.png") },
+      { label: "Twitter / X", keys: ["twitter", "x.com", "推特"], icon: qure("X.png") },
+      { label: "Instagram", keys: ["instagram", "ig"], icon: qure("Instagram.png") },
+      { label: "Facebook", keys: ["facebook", "meta", "脸书", "臉書"], icon: qure("Facebook.png") },
+      { label: "PayPal", keys: ["paypal", "贝宝", "貝寶"], icon: qure("PayPal.png") },
+      { label: "Crypto", keys: ["crypto", "binance", "coinbase", "okx", "加密", "币安", "幣安"], icon: qure("Global.png") },
+      { label: "Game", keys: ["game", "games", "steam", "epic", "xbox", "playstation", "游戏", "遊戲"], icon: qure("Steam.png") },
+      { label: "Download", keys: ["download", "下载", "下載", "pt", "bt"], icon: qure("Download.png") },
+      { label: "Proxy", keys: ["proxy", "select", "节点选择", "節點選擇", "代理", "手动", "手動"], icon: qure("Proxy.png") },
+      { label: "Direct", keys: ["direct", "直连", "直連", "国内", "國內"], icon: qure("Direct.png") },
+      { label: "Reject", keys: ["reject", "广告", "廣告", "adblock", "block"], icon: qure("Reject.png") },
+      { label: "Final", keys: ["final", "match", "漏网之鱼", "漏網之魚", "兜底"], icon: qure("Final.png") }
     ];
 
     const CLASH_SAMPLE = `proxies:
@@ -711,7 +714,7 @@ proxy-groups:
     proxies: [HK 01, DIRECT]
   - name: Netflix
     type: select
-    icon: https://cdn.simpleicons.org/netflix/E50914
+    icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Netflix.png
     proxies: [HK 01, DIRECT]
 rules:
   - DOMAIN-SUFFIX,youtube.com,YouTube
