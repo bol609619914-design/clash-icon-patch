@@ -1,6 +1,60 @@
 # Clash Icon Patch
 
-A lightweight static web tool for patching missing `icon` fields in Clash `proxy-groups`.
+![Clash Icon Patch 视觉图](assets/clash-icon-patch-hero.png)
 
-Open the site, paste or upload a Clash YAML config, preview matched policy-group icons, then copy or download the patched YAML.
+一个轻量的 Clash 策略组图标补齐工具。
 
+在线使用：
+
+[https://bol609619914-design.github.io/clash-icon-patch/](https://bol609619914-design.github.io/clash-icon-patch/)
+
+## 它解决什么
+
+有些机场订阅里的 `proxy-groups` 没有 `icon` 字段，导入到支持策略组图标的客户端后，YouTube、Disney+、Netflix、OpenAI、Telegram 等分流组看起来会比较空。
+
+这个工具会读取 Clash YAML，只给缺失 `icon` 的策略组补上图标；已有图标会原样保留。
+
+## 功能
+
+- 支持粘贴 Clash YAML
+- 支持上传本地 YAML 文件
+- 支持尝试拉取订阅 URL
+- 只处理 `proxy-groups`
+- 保留已有 `icon`
+- 预览补齐结果
+- 一键复制或下载新的 YAML
+- 纯静态网页，无后端服务
+
+## 内置匹配
+
+当前内置了常见策略组图标规则，包括：
+
+YouTube、Disney+、Netflix、TikTok、Spotify、Telegram、OpenAI、GitHub、Google、Apple、Microsoft、Amazon、HBO Max、Hulu、Bahamut、Bilibili、Twitter/X、Instagram、Facebook、PayPal、Crypto、Steam/游戏、下载、代理选择、直连、广告拦截、兜底规则等。
+
+## 使用方式
+
+1. 打开在线页面。
+2. 粘贴或上传 Clash YAML 配置。
+3. 点击“补齐策略组图标”。
+4. 检查预览结果。
+5. 复制或下载补齐后的 YAML。
+
+## 隐私说明
+
+这是一个纯前端静态工具，YAML 解析和图标补齐都在浏览器本地完成。
+
+如果使用“订阅 URL”导入，浏览器会直接请求该订阅地址；很多订阅接口可能因为 CORS 策略无法在网页里直接读取，这时可以手动复制订阅返回内容，再粘贴到工具中处理。
+
+## 本地运行
+
+```bash
+python3 -m http.server 4173
+```
+
+然后访问：
+
+[http://127.0.0.1:4173/](http://127.0.0.1:4173/)
+
+## 部署
+
+本项目直接通过 GitHub Pages 从 `main` 分支根目录发布，不需要构建步骤。
