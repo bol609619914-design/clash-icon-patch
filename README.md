@@ -12,10 +12,10 @@
 
 有些机场订阅里的策略组没有图标信息，导入到支持策略组图标的客户端后，YouTube、Disney+、Netflix、OpenAI、Telegram 等分流组看起来会比较空。
 
-这个工具会读取配置并按名称、server 域名匹配图标：
+这个工具会读取配置并按策略组名称匹配图标：
 
-- Clash / Stash：给缺失 `icon` 的 `proxy-groups` 写入服务图标，也可以给 `proxies` 写入国家/地区旗帜
-- Surfboard：解析 `[Proxy Group]` 与 `[Proxy]` 并导出图标映射清单，不向原配置写入未见官方支持的非标准字段
+- Clash / Stash：给缺失 `icon` 的 `proxy-groups` 写入服务图标，已有图标原样保留
+- Surfboard：解析 `[Proxy Group]` 并导出图标映射清单，不向原配置写入未见官方支持的非标准字段
 
 ## 功能
 
@@ -26,7 +26,6 @@
 - 自动识别 Clash / Surfboard 格式
 - 保留已有 `icon`
 - 内置图标统一使用 Qure IconSet
-- 支持节点国旗补齐，按节点名和 server 识别 HK、MO、TW、JP、SG、US、UK 等地区
 - 预览补齐结果
 - 一键复制或下载新的 YAML
 - 纯静态网页，无后端服务
@@ -51,9 +50,7 @@ YouTube、Disney+、Netflix、TikTok、Spotify、Telegram、OpenAI、GitHub、Go
 
 如果使用“订阅 URL”导入，浏览器会直接请求该订阅地址；很多订阅接口可能因为 CORS 策略无法在 GitHub Pages 里直接读取。
 
-遇到这种情况时，页面会显示可操作的替代方案：打开订阅链接复制返回内容，或复制页面生成的 `curl` 命令在本机终端获取配置，再粘贴回工具处理。工具不会默认使用公共 CORS 代理，避免把订阅 token 发送给第三方。
-
-如果只是技术验证，也可以在 URL 面板里勾选“使用公共 CORS 代理”。该模式会先直连，失败后通过所选代理模板拉取订阅；订阅 URL 和 token 会暴露给代理服务，请只在你能接受这个风险时使用。
+遇到这种情况时，页面会显示可操作的替代方案：打开订阅链接复制返回内容，或复制页面生成的 `curl` 命令在本机终端获取配置，再粘贴回工具处理。工具不使用公共 CORS 代理，避免把订阅 token 发送给第三方。
 
 ## 本地运行
 

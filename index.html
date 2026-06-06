@@ -5,7 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="为 Clash、Stash 与 Surfboard 配置识别并补齐策略组图标。">
   <title>Policy Icon Patch</title>
-  <link rel="icon" href="./assets/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="./assets/favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="./assets/plane-logo-192.png">
   <script src="./vendor/js-yaml.min.js"></script>
   <style>
     :root {
@@ -101,14 +102,17 @@
       width: 38px;
       height: 38px;
       border-radius: 8px;
-      display: grid;
-      place-items: center;
-      color: #fff;
-      background: linear-gradient(135deg, #1d4ed8, #38bdf8);
-      box-shadow: inset 0 0 0 1px rgba(255,255,255,.22);
+      overflow: hidden;
+      background: #dbeafe;
+      box-shadow: inset 0 0 0 1px rgba(37, 99, 235, .18);
     }
 
-    .mark svg { width: 22px; height: 22px; }
+    .mark img {
+      width: 100%;
+      height: 100%;
+      display: block;
+      object-fit: cover;
+    }
 
     h1 {
       margin: 0;
@@ -327,15 +331,6 @@
       grid-template-columns: minmax(0, 1fr) auto;
       gap: 8px;
     }
-
-    .proxy-config {
-      display: none;
-      grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr);
-      gap: 8px;
-      margin-top: 8px;
-    }
-
-    .proxy-config.show { display: grid; }
 
     .url-help {
       display: none;
@@ -621,14 +616,11 @@
     <header class="appbar">
       <div class="brand">
         <div class="mark" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none">
-            <path d="M3.5 11.4 20.8 4c1-.4 2 .6 1.5 1.6l-7.4 17.2c-.4.9-1.7.8-2-.2l-1.6-6.2-6.2-1.6c-1-.3-1.1-1.5-.2-1.9Z" fill="currentColor"/>
-            <path d="m11.3 16.4 4-4 6.4-7.6-8 6.4-8.6 3.2 6.2 2Z" fill="#dbeafe" opacity=".95"/>
-          </svg>
+          <img src="./assets/plane-logo-192.png" alt="">
         </div>
         <div>
           <h1>Policy Icon Patch</h1>
-          <p class="tagline">Clash / Stash 写入图标，Surfboard 生成策略组与节点映射。</p>
+          <p class="tagline">Clash / Stash 写入图标，Surfboard 生成策略组映射。</p>
         </div>
       </div>
       <div class="app-actions">
@@ -656,10 +648,6 @@
               <input id="patchGroups" type="checkbox" checked>
               <span>策略组图标</span>
             </label>
-            <label class="check-option" for="patchNodes">
-              <input id="patchNodes" type="checkbox" checked>
-              <span>节点国旗</span>
-            </label>
           </div>
 
           <div class="source-tabs" role="tablist" aria-label="导入方式">
@@ -679,23 +667,9 @@
               <input id="subUrl" type="url" placeholder="https://example.com/profile">
               <button id="fetchUrl" type="button">拉取</button>
             </div>
-            <div class="options-row">
-              <label class="check-option" for="useCorsProxy">
-                <input id="useCorsProxy" type="checkbox">
-                <span>使用公共 CORS 代理</span>
-              </label>
-            </div>
-            <div class="proxy-config" id="proxyConfig">
-              <select id="proxyPreset" aria-label="代理模板">
-                <option value="https://api.allorigins.win/raw?url={encoded}">AllOrigins</option>
-                <option value="https://corsproxy.io/?url={encoded}">corsproxy.io</option>
-                <option value="custom">自定义模板</option>
-              </select>
-              <input id="proxyTemplate" type="text" value="https://api.allorigins.win/raw?url={encoded}" aria-label="自定义代理模板">
-            </div>
             <div class="url-help" id="urlHelp" aria-live="polite">
               <strong>浏览器无法直接读取这个订阅链接。</strong>
-              <div>这通常是订阅服务器没有允许 GitHub Pages 跨域访问。你可以打开“公共 CORS 代理”做技术验证；注意订阅 URL 会暴露给代理服务。更稳妥的方式是在本机终端运行下面的命令，把输出复制回来。</div>
+              <div>这通常是订阅服务器没有允许 GitHub Pages 跨域访问。你可以在新标签打开链接，复制返回内容后粘贴到“粘贴”里；也可以在本机终端运行下面的命令，把输出复制回来。</div>
               <code id="curlCommand"></code>
               <div class="url-help-actions">
                 <button id="openUrlBtn" type="button">打开链接</button>
@@ -729,7 +703,7 @@
         </div>
         <div class="panel-body">
           <div class="stats" aria-live="polite">
-            <div class="stat"><strong id="statTotal">0</strong><span>项目</span></div>
+            <div class="stat"><strong id="statTotal">0</strong><span>策略组</span></div>
             <div class="stat"><strong id="statAdded">0</strong><span>补齐</span></div>
             <div class="stat"><strong id="statKept">0</strong><span>保留</span></div>
             <div class="stat"><strong id="statMissed">0</strong><span>未匹配</span></div>
@@ -763,7 +737,7 @@
       <div class="panel-head">
         <div>
           <h2 class="panel-title">匹配库</h2>
-          <p class="panel-note">策略组按服务名匹配，节点按名称和 server 匹配国家/地区；已有图标优先保留。</p>
+          <p class="panel-note">按策略组名称匹配，已有图标优先保留。</p>
         </div>
       </div>
       <div class="panel-body">
@@ -807,26 +781,6 @@
       { label: "Final", keys: ["final", "match", "漏网之鱼", "漏網之魚", "兜底"], icon: qure("Final.png") }
     ];
 
-    const FLAG_ICONS = [
-      { label: "香港", keys: ["hk", "hkg", "hong kong", "hongkong", "香港", "港"], icon: qure("Hong_Kong.png") },
-      { label: "澳门", keys: ["mo", "macau", "macao", "澳门", "澳門"], icon: qure("Macao.png") },
-      { label: "台湾", keys: ["tw", "twn", "taiwan", "台湾", "台灣", "台"], icon: qure("Taiwan.png") },
-      { label: "日本", keys: ["jp", "jpn", "japan", "tokyo", "osaka", "日本", "日"], icon: qure("Japan.png") },
-      { label: "新加坡", keys: ["sg", "sgp", "singapore", "新加坡", "狮城", "獅城"], icon: qure("Singapore.png") },
-      { label: "美国", keys: ["us", "usa", "united states", "america", "los angeles", "san jose", "美国", "美國", "美"], icon: qure("United_States.png") },
-      { label: "英国", keys: ["uk", "gb", "gbr", "united kingdom", "britain", "london", "英国", "英國", "英"], icon: qure("United_Kingdom.png") },
-      { label: "韩国", keys: ["kr", "kor", "korea", "seoul", "韩国", "韓國", "韩", "韓"], icon: qure("Korea.png") },
-      { label: "德国", keys: ["de", "deu", "germany", "frankfurt", "德国", "德國", "德"], icon: qure("Germany.png") },
-      { label: "法国", keys: ["fr", "fra", "france", "paris", "法国", "法國", "法"], icon: qure("France.png") },
-      { label: "加拿大", keys: ["ca", "can", "canada", "toronto", "vancouver", "加拿大"], icon: qure("Canada.png") },
-      { label: "澳大利亚", keys: ["au", "aus", "australia", "sydney", "澳大利亚", "澳洲", "澳"], icon: qure("Australia.png") },
-      { label: "中国", keys: ["cn", "chn", "china", "mainland", "中国", "中國", "大陆", "大陸"], icon: qure("China.png") },
-      { label: "俄罗斯", keys: ["ru", "rus", "russia", "moscow", "俄罗斯", "俄羅斯", "俄"], icon: qure("Russia.png") },
-      { label: "印度", keys: ["in", "ind", "india", "mumbai", "印度"], icon: qure("India.png") },
-      { label: "土耳其", keys: ["tr", "tur", "turkey", "istanbul", "土耳其"], icon: qure("Turkey.png") },
-      { label: "阿根廷", keys: ["ar", "arg", "argentina", "buenos aires", "阿根廷"], icon: qure("Argentina.png") }
-    ];
-
     const CLASH_SAMPLE = `proxies:
   - name: HK 01
     type: ss
@@ -834,22 +788,17 @@
     port: 443
     cipher: aes-128-gcm
     password: demo
-  - name: JP 02
-    type: trojan
-    server: jp.example.com
-    port: 443
-    password: demo
 proxy-groups:
   - name: YouTube
     type: select
-    proxies: [HK 01, JP 02, DIRECT]
+    proxies: [HK 01, DIRECT]
   - name: Disney+
     type: select
-    proxies: [HK 01, JP 02, DIRECT]
+    proxies: [HK 01, DIRECT]
   - name: Netflix
     type: select
     icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Netflix.png
-    proxies: [HK 01, JP 02, DIRECT]
+    proxies: [HK 01, DIRECT]
 rules:
   - DOMAIN-SUFFIX,youtube.com,YouTube
   - MATCH,YouTube
@@ -860,14 +809,13 @@ proxy-test-url = http://www.gstatic.com/generate_204
 
 [Proxy]
 HK 01 = ss, hk.example.com, 443, encrypt-method=aes-128-gcm, password=demo
-JP 02 = trojan, jp.example.com, 443, password=demo
 
 [Proxy Group]
-Proxy = select, HK 01, JP 02, DIRECT
-YouTube = select, HK 01, JP 02, DIRECT
-Disney+ = select, HK 01, JP 02, DIRECT
-Netflix = select, HK 01, JP 02, DIRECT
-OpenAI = select, HK 01, JP 02, DIRECT
+Proxy = select, HK 01, DIRECT
+YouTube = select, HK 01, DIRECT
+Disney+ = select, HK 01, DIRECT
+Netflix = select, HK 01, DIRECT
+OpenAI = select, HK 01, DIRECT
 
 [Rule]
 DOMAIN-SUFFIX,youtube.com,YouTube
@@ -885,13 +833,8 @@ FINAL,Proxy
       copy: document.getElementById("copyBtn"),
       download: document.getElementById("downloadBtn"),
       patchGroups: document.getElementById("patchGroups"),
-      patchNodes: document.getElementById("patchNodes"),
       urlHelp: document.getElementById("urlHelp"),
       curlCommand: document.getElementById("curlCommand"),
-      useCorsProxy: document.getElementById("useCorsProxy"),
-      proxyConfig: document.getElementById("proxyConfig"),
-      proxyPreset: document.getElementById("proxyPreset"),
-      proxyTemplate: document.getElementById("proxyTemplate"),
       stats: {
         total: document.getElementById("statTotal"),
         added: document.getElementById("statAdded"),
@@ -928,50 +871,20 @@ FINAL,Proxy
       return ICONS.find(rule => rule.keys.some(key => haystack.includes(normalize(key))));
     }
 
-    function tokenize(text) {
-      return normalize(text).split(/[^a-z0-9\u4e00-\u9fff]+/).filter(Boolean);
-    }
-
-    function ruleMatches(text, rule) {
-      const haystack = normalize(text);
-      const tokens = tokenize(text);
-      return rule.keys.some(key => {
-        const normalizedKey = normalize(key);
-        const isShortAscii = /^[a-z0-9]{2,3}$/.test(normalizedKey);
-        if (isShortAscii) {
-          return tokens.some(token => token === normalizedKey || (token.startsWith(normalizedKey) && token.length <= 5));
-        }
-        return haystack.includes(normalizedKey);
-      });
-    }
-
-    function flagForProxy(proxy) {
-      const haystack = [
-        proxy.name,
-        proxy.server,
-        proxy.sni,
-        proxy.host,
-        proxy["ws-opts"]?.headers?.Host
-      ].filter(Boolean).join(" ");
-      return FLAG_ICONS.find(rule => ruleMatches(haystack, rule));
-    }
-
     function detectFormat(raw) {
       const text = raw.trim();
       if (/^\s*\[Proxy Group\]/mi.test(text) || /^\s*[^#;\n]+=\s*(select|url-test|fallback|load-balance)\s*,/mi.test(text)) return "surfboard";
       try {
         const parsed = jsyaml.load(maybeDecodeBase64(text));
-        if (parsed && (Array.isArray(parsed["proxy-groups"]) || Array.isArray(parsed.proxies))) return "clash";
+        if (parsed && Array.isArray(parsed["proxy-groups"])) return "clash";
       } catch (error) {}
       return "unknown";
     }
 
     function parseClash(raw) {
       const parsed = jsyaml.load(maybeDecodeBase64(raw.trim()));
-      const hasGroups = parsed && Array.isArray(parsed["proxy-groups"]);
-      const hasProxies = parsed && Array.isArray(parsed.proxies);
-      if (!hasGroups && !hasProxies) {
-        throw new Error("没有找到 `proxy-groups` 或 `proxies`。");
+      if (!parsed || !Array.isArray(parsed["proxy-groups"])) {
+        throw new Error("没有找到 `proxy-groups`。");
       }
       return parsed;
     }
@@ -981,57 +894,30 @@ FINAL,Proxy
       const rows = [];
       let added = 0, kept = 0, missed = 0;
 
-      if (els.patchGroups.checked && Array.isArray(config["proxy-groups"])) {
-        config["proxy-groups"].forEach(group => {
-          const existing = typeof group.icon === "string" && group.icon.trim();
-          const match = existing ? null : iconForName(group.name);
-          let icon = existing || "";
-          let label = "";
-          let state = "missed";
+      if (!els.patchGroups.checked) throw new Error("请至少选择一个处理范围。");
+      config["proxy-groups"].forEach(group => {
+        const existing = typeof group.icon === "string" && group.icon.trim();
+        const match = existing ? null : iconForName(group.name);
+        let icon = existing || "";
+        let label = "";
+        let state = "missed";
 
-          if (existing) {
-            kept += 1;
-            label = "保留";
-            state = "kept";
-          } else if (match) {
-            group.icon = match.icon;
-            icon = match.icon;
-            label = match.label;
-            state = "added";
-            added += 1;
-          } else {
-            missed += 1;
-          }
+        if (existing) {
+          kept += 1;
+          label = "保留";
+          state = "kept";
+        } else if (match) {
+          group.icon = match.icon;
+          icon = match.icon;
+          label = match.label;
+          state = "added";
+          added += 1;
+        } else {
+          missed += 1;
+        }
 
-          rows.push({ scope: "策略组", name: group.name || "(未命名)", kind: group.type || "-", icon, label, state });
-        });
-      }
-
-      if (els.patchNodes.checked && Array.isArray(config.proxies)) {
-        config.proxies.forEach(proxy => {
-          const existing = typeof proxy.icon === "string" && proxy.icon.trim();
-          const match = existing ? null : flagForProxy(proxy);
-          let icon = existing || "";
-          let label = "";
-          let state = "missed";
-
-          if (existing) {
-            kept += 1;
-            label = "保留";
-            state = "kept";
-          } else if (match) {
-            proxy.icon = match.icon;
-            icon = match.icon;
-            label = match.label;
-            state = "added";
-            added += 1;
-          } else {
-            missed += 1;
-          }
-
-          rows.push({ scope: "节点", name: proxy.name || proxy.server || "(未命名节点)", kind: proxy.type || "proxy", icon, label, state });
-        });
-      }
+        rows.push({ scope: "策略组", name: group.name || "(未命名)", kind: group.type || "-", icon, label, state });
+      });
 
       const text = jsyaml.dump(config, { lineWidth: 140, noRefs: true, sortKeys: false, quotingType: '"' });
       return {
@@ -1039,8 +925,8 @@ FINAL,Proxy
         text,
         ext: "yaml",
         stats: { total: rows.length, added, kept, missed },
-        notice: "Clash / Stash 模式：策略组写入服务图标，节点写入 Qure 国家/地区旗帜图标；已有 icon 会保留。",
-        status: `已处理 ${rows.length} 个 YAML 项目`
+        notice: "Clash / Stash 模式：已把匹配到的图标写入 `proxy-groups[].icon`。",
+        status: `已处理 ${rows.length} 个 YAML 策略组`
       };
     }
 
@@ -1065,37 +951,13 @@ FINAL,Proxy
       return groups;
     }
 
-    function parseSurfboardProxies(raw) {
-      const lines = raw.replace(/\r\n?/g, "\n").split("\n");
-      const proxies = [];
-      let inProxy = false;
-
-      lines.forEach((line, index) => {
-        const trimmed = line.trim();
-        if (/^\[[^\]]+\]$/.test(trimmed)) {
-          inProxy = /^\[Proxy\]$/i.test(trimmed);
-          return;
-        }
-        if (!inProxy || !trimmed || /^[#;]/.test(trimmed) || !trimmed.includes("=")) return;
-        const eqIndex = line.indexOf("=");
-        const name = line.slice(0, eqIndex).trim();
-        const value = line.slice(eqIndex + 1).trim();
-        const parts = value.split(",").map(part => part.trim()).filter(Boolean);
-        const kind = parts[0] || "proxy";
-        const server = parts[1] || "";
-        if (name) proxies.push({ name, kind, server, line: index + 1 });
-      });
-      return proxies;
-    }
-
     function mapSurfboard(raw) {
       const groups = parseSurfboardGroups(raw);
-      const proxies = parseSurfboardProxies(raw);
-      if (!groups.length && !proxies.length) throw new Error("没有找到 `[Proxy Group]` 或 `[Proxy]`。");
+      if (!groups.length) throw new Error("没有找到 `[Proxy Group]` 策略组。");
 
       let added = 0, missed = 0;
-      const rows = [];
-      const groupRows = els.patchGroups.checked ? groups.map(group => {
+      if (!els.patchGroups.checked) throw new Error("请至少选择一个处理范围。");
+      const rows = groups.map(group => {
         const match = iconForName(group.name);
         if (match) added += 1;
         else missed += 1;
@@ -1107,34 +969,12 @@ FINAL,Proxy
           label: match?.label || "",
           state: match ? "mapped" : "missed"
         };
-      }) : [];
-
-      const proxyRows = els.patchNodes.checked ? proxies.map(proxy => {
-        const match = flagForProxy(proxy);
-        if (match) added += 1;
-        else missed += 1;
-        return {
-          scope: "节点",
-          name: proxy.name,
-          kind: proxy.kind,
-          icon: match?.icon || "",
-          label: match?.label || "",
-          state: match ? "mapped" : "missed"
-        };
-      }) : [];
-
-      rows.push(...groupRows, ...proxyRows);
+      });
 
       const map = {
         format: "surfboard-icon-map",
-        note: "Surfboard 官方 profile format 使用 [Proxy Group] / [Proxy]，当前工具不向原配置写入非官方 icon 字段。",
-        groups: groupRows.map(row => ({
-          name: row.name,
-          type: row.kind,
-          icon: row.icon || null,
-          matched: Boolean(row.icon)
-        })),
-        proxies: proxyRows.map(row => ({
+        note: "Surfboard 官方 profile format 使用 [Proxy Group]，当前工具不向原配置写入非官方 icon 字段。",
+        groups: rows.map(row => ({
           name: row.name,
           type: row.kind,
           icon: row.icon || null,
@@ -1147,8 +987,8 @@ FINAL,Proxy
         text: JSON.stringify(map, null, 2),
         ext: "json",
         stats: { total: rows.length, added, kept: 0, missed },
-        notice: "Surfboard 模式：已解析 `[Proxy Group]` / `[Proxy]` 并导出策略组图标与节点国旗映射；不写入非官方字段。",
-        status: `已映射 ${added}/${rows.length} 个 Surfboard 项目`
+        notice: "Surfboard 模式：已解析 `[Proxy Group]` 并导出图标映射清单；不写入未见官方支持的 icon 字段。",
+        status: `已映射 ${added}/${rows.length} 个 Surfboard 策略组`
       };
     }
 
@@ -1171,7 +1011,7 @@ FINAL,Proxy
         renderPreview(result.rows, result.stats);
         els.notice.textContent = result.notice;
         els.status.textContent = result.status;
-        els.note.textContent = format === "surfboard" ? "Surfboard 输出映射清单；Clash / Stash 才写入 icon 字段。" : "输出为已补齐策略组图标与节点国旗的 YAML。";
+        els.note.textContent = format === "surfboard" ? "Surfboard 输出映射清单；Clash / Stash 才写入 icon 字段。" : "输出为已补齐 icon 字段的 YAML。";
         showToast("处理完成。");
       } catch (error) {
         els.status.textContent = "处理失败";
@@ -1185,7 +1025,7 @@ FINAL,Proxy
       els.stats.kept.textContent = stats.kept;
       els.stats.missed.textContent = stats.missed;
       if (!rows.length) {
-        els.rows.innerHTML = `<tr><td colspan="4" class="panel-note">没有可预览项目。</td></tr>`;
+        els.rows.innerHTML = `<tr><td colspan="4" class="panel-note">没有可预览策略组。</td></tr>`;
         return;
       }
       els.rows.innerHTML = rows.slice(0, 120).map(row => {
@@ -1200,7 +1040,7 @@ FINAL,Proxy
     }
 
     function renderRules() {
-      document.getElementById("ruleList").innerHTML = [...ICONS, ...FLAG_ICONS].map(rule => `
+      document.getElementById("ruleList").innerHTML = ICONS.map(rule => `
         <div class="rule">
           ${renderIcon(rule.icon, rule.label)}
           <div>
@@ -1253,21 +1093,12 @@ FINAL,Proxy
       const command = `curl -L ${shellQuote(url)} -o subscription.yaml && cat subscription.yaml`;
       els.curlCommand.textContent = command;
       els.urlHelp.classList.add("show");
-      els.notice.textContent = "URL 拉取失败：这通常是浏览器跨域限制，不是配置解析失败。可打开公共 CORS 代理做技术验证，或用本机 curl 获取内容后粘贴处理。";
+      els.notice.textContent = "URL 拉取失败：这是浏览器跨域限制，不是配置解析失败。请打开链接或用本机 curl 获取内容后粘贴处理。";
     }
 
     function hideUrlHelp() {
       els.urlHelp.classList.remove("show");
       els.curlCommand.textContent = "";
-    }
-
-    function buildProxyUrl(url) {
-      const template = els.proxyTemplate.value.trim();
-      if (!template) throw new Error("请填写代理模板。");
-      const encoded = encodeURIComponent(url);
-      return template
-        .replaceAll("{encoded}", encoded)
-        .replaceAll("{url}", url);
     }
 
     async function fetchText(url, label) {
@@ -1292,21 +1123,6 @@ FINAL,Proxy
         const text = await fetchText(url, "直连");
         importFetchedText(text, "已直连导入");
       } catch (directError) {
-        if (els.useCorsProxy.checked) {
-          try {
-            els.status.textContent = "正在通过代理拉取";
-            const proxyUrl = buildProxyUrl(url);
-            const text = await fetchText(proxyUrl, "代理");
-            importFetchedText(text, "已通过代理导入");
-            els.notice.textContent = "已通过公共 CORS 代理导入。此模式会把订阅 URL 暴露给代理服务，仅建议技术验证使用。";
-            return;
-          } catch (proxyError) {
-            els.status.textContent = "代理拉取失败";
-            showUrlHelp(url);
-            showToast(`代理也无法读取：${proxyError.message}`, true);
-            return;
-          }
-        }
         els.status.textContent = "拉取失败";
         showUrlHelp(url);
         showToast("浏览器无法读取该 URL，通常是 CORS 限制。", true);
@@ -1340,8 +1156,6 @@ FINAL,Proxy
       els.note.textContent = "Clash / Stash 会写入 `icon` 字段；Surfboard 输出映射清单。";
       els.status.textContent = "等待配置";
       hideUrlHelp();
-      els.useCorsProxy.checked = false;
-      els.proxyConfig.classList.remove("show");
       renderPreview([], { total: 0, added: 0, kept: 0, missed: 0 });
     }
 
@@ -1361,16 +1175,6 @@ FINAL,Proxy
     document.querySelectorAll(".segmented button").forEach(btn => btn.addEventListener("click", () => setTarget(btn.dataset.target)));
     document.getElementById("patchBtn").addEventListener("click", processConfig);
     document.getElementById("fetchUrl").addEventListener("click", fetchSubscription);
-    els.useCorsProxy.addEventListener("change", () => {
-      els.proxyConfig.classList.toggle("show", els.useCorsProxy.checked);
-    });
-    els.proxyPreset.addEventListener("change", () => {
-      if (els.proxyPreset.value !== "custom") {
-        els.proxyTemplate.value = els.proxyPreset.value;
-      } else {
-        els.proxyTemplate.focus();
-      }
-    });
     document.getElementById("openUrlBtn").addEventListener("click", () => {
       const url = document.getElementById("subUrl").value.trim();
       if (url) window.open(url, "_blank", "noopener,noreferrer");
