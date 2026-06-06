@@ -299,7 +299,9 @@
     }
 
     textarea,
-    input[type="url"] {
+    input[type="url"],
+    input[type="text"],
+    select {
       width: 100%;
       border: 1px solid var(--line);
       border-radius: 8px;
@@ -325,6 +327,15 @@
       grid-template-columns: minmax(0, 1fr) auto;
       gap: 8px;
     }
+
+    .proxy-config {
+      display: none;
+      grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr);
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .proxy-config.show { display: grid; }
 
     .url-help {
       display: none;
@@ -668,9 +679,23 @@
               <input id="subUrl" type="url" placeholder="https://example.com/profile">
               <button id="fetchUrl" type="button">拉取</button>
             </div>
+            <div class="options-row">
+              <label class="check-option" for="useCorsProxy">
+                <input id="useCorsProxy" type="checkbox">
+                <span>使用公共 CORS 代理</span>
+              </label>
+            </div>
+            <div class="proxy-config" id="proxyConfig">
+              <select id="proxyPreset" aria-label="代理模板">
+                <option value="https://api.allorigins.win/raw?url={encoded}">AllOrigins</option>
+                <option value="https://corsproxy.io/?url={encoded}">corsproxy.io</option>
+                <option value="custom">自定义模板</option>
+              </select>
+              <input id="proxyTemplate" type="text" value="https://api.allorigins.win/raw?url={encoded}" aria-label="自定义代理模板">
+            </div>
             <div class="url-help" id="urlHelp" aria-live="polite">
               <strong>浏览器无法直接读取这个订阅链接。</strong>
-              <div>这通常是订阅服务器没有允许 GitHub Pages 跨域访问。你可以在新标签打开链接，复制返回内容后粘贴到“粘贴”里；也可以在本机终端运行下面的命令，把输出复制回来。</div>
+              <div>这通常是订阅服务器没有允许 GitHub Pages 跨域访问。你可以打开“公共 CORS 代理”做技术验证；注意订阅 URL 会暴露给代理服务。更稳妥的方式是在本机终端运行下面的命令，把输出复制回来。</div>
               <code id="curlCommand"></code>
               <div class="url-help-actions">
                 <button id="openUrlBtn" type="button">打开链接</button>
@@ -863,6 +888,10 @@ FINAL,Proxy
       patchNodes: document.getElementById("patchNodes"),
       urlHelp: document.getElementById("urlHelp"),
       curlCommand: document.getElementById("curlCommand"),
+      useCorsProxy: document.getElementById("useCorsProxy"),
+      proxyConfig: document.getElementById("proxyConfig"),
+      proxyPreset: document.getElementById("proxyPreset"),
+      proxyTemplate: document.getElementById("proxyTemplate"),
       stats: {
         total: document.getElementById("statTotal"),
         added: document.getElementById("statAdded"),
@@ -1224,12 +1253,34 @@ FINAL,Proxy
       const command = `curl -L ${shellQuote(url)} -o subscription.yaml && cat subscription.yaml`;
       els.curlCommand.textContent = command;
       els.urlHelp.classList.add("show");
-      els.notice.textContent = "URL 拉取失败：这是浏览器跨域限制，不是配置解析失败。请打开链接或用本机 curl 获取内容后粘贴处理。";
+      els.notice.textContent = "URL 拉取失败：这通常是浏览器跨域限制，不是配置解析失败。可打开公共 CORS 代理做技术验证，或用本机 curl 获取内容后粘贴处理。";
     }
 
     function hideUrlHelp() {
       els.urlHelp.classList.remove("show");
       els.curlCommand.textContent = "";
+    }
+
+    function buildProxyUrl(url) {
+      const template = els.proxyTemplate.value.trim();
+      if (!template) throw new Error("请填写代理模板。");
+      const encoded = encodeURIComponent(url);
+      return template
+        .replaceAll("{encoded}", encoded)
+        .replaceAll("{url}", url);
+    }
+
+    async function fetchText(url, label) {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`${label} HTTP ${response.status}`);
+      return response.text();
+    }
+
+    function importFetchedText(text, status) {
+      els.input.value = maybeDecodeBase64(text);
+      switchTab("paste");
+      els.status.textContent = status;
+      showToast("已导入。");
     }
 
     async function fetchSubscription() {
@@ -1238,13 +1289,24 @@ FINAL,Proxy
       els.status.textContent = "正在拉取";
       hideUrlHelp();
       try {
-        const response = await fetch(url);
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        els.input.value = maybeDecodeBase64(await response.text());
-        switchTab("paste");
-        els.status.textContent = "已导入 URL";
-        showToast("已导入。");
-      } catch (error) {
+        const text = await fetchText(url, "直连");
+        importFetchedText(text, "已直连导入");
+      } catch (directError) {
+        if (els.useCorsProxy.checked) {
+          try {
+            els.status.textContent = "正在通过代理拉取";
+            const proxyUrl = buildProxyUrl(url);
+            const text = await fetchText(proxyUrl, "代理");
+            importFetchedText(text, "已通过代理导入");
+            els.notice.textContent = "已通过公共 CORS 代理导入。此模式会把订阅 URL 暴露给代理服务，仅建议技术验证使用。";
+            return;
+          } catch (proxyError) {
+            els.status.textContent = "代理拉取失败";
+            showUrlHelp(url);
+            showToast(`代理也无法读取：${proxyError.message}`, true);
+            return;
+          }
+        }
         els.status.textContent = "拉取失败";
         showUrlHelp(url);
         showToast("浏览器无法读取该 URL，通常是 CORS 限制。", true);
@@ -1278,6 +1340,8 @@ FINAL,Proxy
       els.note.textContent = "Clash / Stash 会写入 `icon` 字段；Surfboard 输出映射清单。";
       els.status.textContent = "等待配置";
       hideUrlHelp();
+      els.useCorsProxy.checked = false;
+      els.proxyConfig.classList.remove("show");
       renderPreview([], { total: 0, added: 0, kept: 0, missed: 0 });
     }
 
@@ -1297,6 +1361,16 @@ FINAL,Proxy
     document.querySelectorAll(".segmented button").forEach(btn => btn.addEventListener("click", () => setTarget(btn.dataset.target)));
     document.getElementById("patchBtn").addEventListener("click", processConfig);
     document.getElementById("fetchUrl").addEventListener("click", fetchSubscription);
+    els.useCorsProxy.addEventListener("change", () => {
+      els.proxyConfig.classList.toggle("show", els.useCorsProxy.checked);
+    });
+    els.proxyPreset.addEventListener("change", () => {
+      if (els.proxyPreset.value !== "custom") {
+        els.proxyTemplate.value = els.proxyPreset.value;
+      } else {
+        els.proxyTemplate.focus();
+      }
+    });
     document.getElementById("openUrlBtn").addEventListener("click", () => {
       const url = document.getElementById("subUrl").value.trim();
       if (url) window.open(url, "_blank", "noopener,noreferrer");
