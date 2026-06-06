@@ -1,8 +1,8 @@
-# Clash Icon Patch
+# Policy Icon Patch
 
 ![Clash Icon Patch 视觉图](assets/clash-icon-patch-hero.png)
 
-一个轻量的 Clash 策略组图标补齐工具。
+一个轻量的策略组图标处理工具，支持 Clash / Stash 与 Surfboard 配置。
 
 在线使用：
 
@@ -10,16 +10,20 @@
 
 ## 它解决什么
 
-有些机场订阅里的 `proxy-groups` 没有 `icon` 字段，导入到支持策略组图标的客户端后，YouTube、Disney+、Netflix、OpenAI、Telegram 等分流组看起来会比较空。
+有些机场订阅里的策略组没有图标信息，导入到支持策略组图标的客户端后，YouTube、Disney+、Netflix、OpenAI、Telegram 等分流组看起来会比较空。
 
-这个工具会读取 Clash YAML，只给缺失 `icon` 的策略组补上图标；已有图标会原样保留。
+这个工具会读取配置并按策略组名称匹配图标：
+
+- Clash / Stash：给缺失 `icon` 的 `proxy-groups` 写入图标，已有图标原样保留
+- Surfboard：解析 `[Proxy Group]` 并导出图标映射清单，不向原配置写入未见官方支持的非标准字段
 
 ## 功能
 
 - 支持粘贴 Clash YAML
-- 支持上传本地 YAML 文件
+- 支持粘贴 Surfboard / Surge 风格配置
+- 支持上传本地 YAML / CONF 文件
 - 支持尝试拉取订阅 URL
-- 只处理 `proxy-groups`
+- 自动识别 Clash / Surfboard 格式
 - 保留已有 `icon`
 - 预览补齐结果
 - 一键复制或下载新的 YAML
@@ -34,10 +38,10 @@ YouTube、Disney+、Netflix、TikTok、Spotify、Telegram、OpenAI、GitHub、Go
 ## 使用方式
 
 1. 打开在线页面。
-2. 粘贴或上传 Clash YAML 配置。
-3. 点击“补齐策略组图标”。
+2. 粘贴或上传 Clash YAML / Surfboard 配置。
+3. 点击“处理配置”。
 4. 检查预览结果。
-5. 复制或下载补齐后的 YAML。
+5. 复制或下载处理后的 YAML / JSON。
 
 ## 隐私说明
 

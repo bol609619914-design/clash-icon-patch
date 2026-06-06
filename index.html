@@ -3,27 +3,31 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="给 Clash 订阅里缺失 icon 的策略组轻量补图标，并导出新的 YAML 配置。">
-  <title>Clash Icon Patch</title>
+  <meta name="description" content="为 Clash、Stash 与 Surfboard 配置识别并补齐策略组图标。">
+  <title>Policy Icon Patch</title>
   <script src="./vendor/js-yaml.min.js"></script>
   <style>
     :root {
       color-scheme: light;
-      --ink: #0f172a;
+      --bg: #f6f8fc;
+      --surface: #ffffff;
+      --surface-2: #f9fbff;
+      --line: #d9e2ef;
+      --line-strong: #b8c7dc;
+      --text: #0f172a;
       --muted: #64748b;
-      --soft: #f6f9ff;
-      --paper: #ffffff;
-      --line: #dbe7f5;
-      --field: #f8fbff;
+      --faint: #94a3b8;
       --blue: #2563eb;
-      --blue-strong: #1d4ed8;
-      --blue-2: #e8f1ff;
-      --cyan: #06b6d4;
+      --blue-2: #eff6ff;
+      --blue-3: #dbeafe;
+      --green: #067647;
+      --green-2: #ecfdf3;
       --red: #b42318;
-      --green: #057a55;
-      --green-2: #dcfce7;
-      --shadow: 0 20px 60px rgba(37, 99, 235, .12);
-      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --red-2: #fff1f0;
+      --shadow: 0 14px 40px rgba(15, 23, 42, .08);
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-family: var(--sans);
     }
 
     * { box-sizing: border-box; }
@@ -31,297 +35,412 @@
     body {
       margin: 0;
       min-height: 100dvh;
+      color: var(--text);
       background:
-        radial-gradient(circle at 16% 8%, rgba(37, 99, 235, .13), transparent 28%),
-        radial-gradient(circle at 86% 14%, rgba(6, 182, 212, .14), transparent 30%),
-        linear-gradient(180deg, #ffffff 0%, #f3f7ff 48%, #eef6ff 100%),
-        var(--soft);
-      color: var(--ink);
+        linear-gradient(180deg, #fbfdff 0%, var(--bg) 42%, #f2f6fd 100%);
     }
 
-    button, input, textarea, select { font: inherit; min-width: 0; }
+    button, textarea, input, select {
+      font: inherit;
+      min-width: 0;
+    }
 
     button {
-      min-height: 44px;
-      border: 1px solid transparent;
+      min-height: 40px;
+      border: 1px solid var(--line);
       border-radius: 8px;
-      padding: 0 16px;
+      padding: 0 13px;
+      background: var(--surface);
+      color: var(--text);
       cursor: pointer;
-      color: var(--ink);
-      background: var(--paper);
-      transition: transform .18s ease, border-color .18s ease, background .18s ease, opacity .18s ease;
+      transition: background .16s ease, border-color .16s ease, color .16s ease, transform .16s ease;
     }
 
-    button:hover { transform: translateY(-1px); }
-    button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible {
-      outline: 3px solid rgba(37, 99, 235, .22);
+    button:hover { border-color: var(--line-strong); background: #f8fbff; }
+    button:active { transform: translateY(1px); }
+    button:disabled { cursor: not-allowed; opacity: .48; transform: none; }
+
+    button:focus-visible,
+    textarea:focus-visible,
+    input:focus-visible,
+    select:focus-visible {
+      outline: 3px solid rgba(37, 99, 235, .18);
       outline-offset: 2px;
     }
-    button:disabled { cursor: not-allowed; opacity: .5; transform: none; }
 
     .shell {
-      width: min(1240px, calc(100% - 32px));
+      width: min(1420px, calc(100% - 32px));
       margin: 0 auto;
-      padding: 24px 0 32px;
+      padding: 18px 0 28px;
     }
 
-    .topbar {
+    .appbar {
+      min-height: 64px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 16px;
-      margin-bottom: 20px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, .82);
+      box-shadow: 0 8px 28px rgba(15, 23, 42, .05);
+      padding: 10px 12px 10px 14px;
+      backdrop-filter: blur(10px);
     }
 
     .brand {
-      display: flex;
+      display: grid;
+      grid-template-columns: 38px minmax(0, 1fr);
       align-items: center;
-      gap: 12px;
+      gap: 11px;
       min-width: 0;
     }
 
-    .brand-mark {
-      width: 42px;
-      height: 42px;
+    .mark {
+      width: 38px;
+      height: 38px;
       border-radius: 8px;
-      background:
-        linear-gradient(135deg, var(--blue), #4f8bff 58%, var(--cyan));
-      box-shadow: inset 0 0 0 1px rgba(255,255,255,.45);
       display: grid;
       place-items: center;
-      flex: 0 0 auto;
+      color: #fff;
+      background: linear-gradient(135deg, #1d4ed8, #38bdf8);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.22);
     }
 
-    .brand-mark svg { width: 24px; height: 24px; color: white; }
-    .brand h1 { margin: 0; font-size: clamp(24px, 3vw, 42px); line-height: 1.05; letter-spacing: 0; }
-    .brand p { margin: 5px 0 0; color: var(--muted); font-size: 15px; }
+    .mark svg { width: 22px; height: 22px; }
 
-    .status-pill {
+    h1 {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.15;
+      letter-spacing: 0;
+      font-weight: 760;
+    }
+
+    .tagline {
+      margin: 3px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    .app-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .pill {
+      min-height: 34px;
       display: inline-flex;
       align-items: center;
       gap: 8px;
       border: 1px solid var(--line);
-      background: rgba(255,255,255,.62);
-      min-height: 40px;
-      padding: 0 12px;
       border-radius: 999px;
+      padding: 0 11px;
       color: var(--muted);
+      background: var(--surface-2);
+      font-size: 13px;
       white-space: nowrap;
     }
 
-    .status-dot {
-      width: 9px;
-      height: 9px;
+    .dot {
+      width: 8px;
+      height: 8px;
       border-radius: 50%;
       background: var(--blue);
-      box-shadow: 0 0 0 5px rgba(37, 99, 235, .13);
+      box-shadow: 0 0 0 4px rgba(37, 99, 235, .12);
     }
 
-    .layout {
+    .grid {
       display: grid;
-      grid-template-columns: minmax(0, 1.05fr) minmax(360px, .95fr);
-      gap: 16px;
-      align-items: start;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 14px;
+      margin-top: 14px;
+      align-items: stretch;
     }
 
     .panel {
-      background: rgba(255,255,255,.88);
-      border: 1px solid rgba(219,231,245,.95);
-      border-radius: 8px;
-      box-shadow: var(--shadow);
       min-width: 0;
-      backdrop-filter: blur(12px);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, .92);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
     }
 
-    .panel-header {
-      padding: 18px 18px 0;
+    .panel-head {
+      min-height: 58px;
       display: flex;
-      align-items: flex-start;
+      align-items: center;
       justify-content: space-between;
       gap: 12px;
+      padding: 13px 14px;
+      border-bottom: 1px solid var(--line);
+      background: linear-gradient(180deg, #fff, #f9fbff);
     }
 
-    .panel h2 {
+    .panel-title {
       margin: 0;
-      font-size: 18px;
-      line-height: 1.25;
+      font-size: 15px;
+      line-height: 1.2;
+      font-weight: 740;
     }
 
-    .panel .hint {
-      margin: 6px 0 0;
+    .panel-note {
+      margin: 4px 0 0;
       color: var(--muted);
-      font-size: 14px;
-      line-height: 1.5;
+      font-size: 12px;
+      line-height: 1.35;
     }
 
-    .panel-body { padding: 18px; min-width: 0; }
+    .panel-body { padding: 14px; min-width: 0; }
 
-    .tabs {
+    .grid > .panel .panel-body {
+      display: flex;
+      flex: 1;
+      flex-direction: column;
+    }
+
+    .segmented {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 6px;
-      padding: 5px;
-      border-radius: 8px;
-      background: var(--field);
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 4px;
+      padding: 4px;
       border: 1px solid var(--line);
-      margin-bottom: 14px;
+      border-radius: 8px;
+      background: #f1f5fb;
     }
 
-    .tab {
-      min-height: 38px;
+    .segmented button {
+      min-height: 36px;
+      border: 0;
       border-radius: 6px;
+      background: transparent;
+      color: var(--muted);
+      padding: 0 9px;
+    }
+
+    .segmented button[aria-pressed="true"] {
+      background: var(--surface);
+      color: var(--blue);
+      box-shadow: 0 1px 8px rgba(15, 23, 42, .08);
+      font-weight: 700;
+    }
+
+    .source-tabs {
+      display: flex;
+      gap: 4px;
+      padding: 4px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #f1f5fb;
+      margin-top: 12px;
+    }
+
+    .source-tabs button {
+      min-height: 34px;
+      flex: 1;
       border: 0;
       background: transparent;
       color: var(--muted);
-      padding: 0 10px;
+      border-radius: 6px;
     }
 
-    .tab[aria-selected="true"] {
-      background: var(--paper);
-      color: var(--ink);
-      box-shadow: 0 1px 7px rgba(27,33,29,.08);
+    .source-tabs button[aria-selected="true"] {
+      background: var(--surface);
+      color: var(--text);
+      box-shadow: 0 1px 8px rgba(15, 23, 42, .08);
+      font-weight: 700;
     }
 
-    .source-pane { display: none; }
+    .source-pane { display: none; margin-top: 12px; }
     .source-pane.active { display: block; }
 
     label {
       display: block;
-      color: var(--ink);
-      font-weight: 650;
-      font-size: 14px;
-      margin-bottom: 8px;
+      margin-bottom: 7px;
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 720;
     }
 
-    textarea, input[type="url"], input[type="text"], select {
+    textarea,
+    input[type="url"] {
       width: 100%;
       border: 1px solid var(--line);
-      background: var(--field);
       border-radius: 8px;
-      color: var(--ink);
-      padding: 12px 13px;
+      background: #fbfdff;
+      color: var(--text);
+      padding: 11px 12px;
     }
 
     textarea {
-      min-height: 390px;
-      resize: vertical;
-      line-height: 1.45;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-      font-size: 13px;
       display: block;
-      max-width: 100%;
+      min-height: 430px;
+      resize: vertical;
+      font-family: var(--mono);
+      font-size: 12.5px;
+      line-height: 1.5;
+      tab-size: 2;
     }
 
-    .input-row {
+    .output-area { min-height: 228px; }
+
+    .url-row {
       display: grid;
       grid-template-columns: minmax(0, 1fr) auto;
-      gap: 10px;
+      gap: 8px;
     }
 
-    .file-drop {
+    .file-zone {
+      min-height: 158px;
+      border: 1px dashed var(--line-strong);
+      border-radius: 8px;
       display: grid;
       place-items: center;
-      min-height: 210px;
-      border: 1px dashed #b6aa94;
-      background: rgba(248,251,255,.82);
-      border-radius: 8px;
+      background: var(--surface-2);
+      padding: 18px;
       text-align: center;
-      padding: 24px;
     }
 
-    .file-drop input { max-width: 270px; }
+    .file-zone input { max-width: 280px; }
 
     .toolbar {
       display: flex;
       flex-wrap: wrap;
-      gap: 10px;
+      gap: 8px;
       align-items: center;
-      margin-top: 14px;
+      margin-top: 12px;
     }
 
     .primary {
-      background: var(--blue);
-      color: white;
       border-color: var(--blue);
-      box-shadow: 0 10px 22px rgba(37, 99, 235, .2);
+      background: var(--blue);
+      color: #fff;
+      font-weight: 720;
+      box-shadow: 0 10px 20px rgba(37, 99, 235, .18);
     }
 
-    .primary:hover {
-      background: var(--blue-strong);
-      border-color: var(--blue-strong);
-    }
-
-    .secondary {
-      border-color: var(--line);
-      background: var(--paper);
-    }
-
-    .ghost {
-      border-color: transparent;
-      background: transparent;
-      color: var(--muted);
-    }
-
-    .danger-text { color: var(--red); }
+    .primary:hover { background: #1d4ed8; border-color: #1d4ed8; }
+    .ghost { background: transparent; border-color: transparent; color: var(--muted); }
+    .ghost:hover { background: var(--blue-2); color: var(--blue); border-color: var(--blue-3); }
 
     .stats {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 10px;
-      margin-bottom: 16px;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+      margin-bottom: 12px;
     }
 
     .stat {
       border: 1px solid var(--line);
-      background: linear-gradient(180deg, #ffffff, var(--field));
       border-radius: 8px;
-      padding: 12px;
-      min-width: 0;
+      background: var(--surface-2);
+      padding: 10px;
     }
 
     .stat strong {
       display: block;
-      font-size: 25px;
+      font-size: 22px;
       line-height: 1;
       font-variant-numeric: tabular-nums;
     }
 
     .stat span {
       display: block;
-      margin-top: 7px;
+      margin-top: 6px;
       color: var(--muted);
       font-size: 12px;
+      white-space: nowrap;
     }
 
-    .rules {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 8px;
-      margin-top: 10px;
-    }
-
-    .rule {
-      min-height: 54px;
-      border: 1px solid var(--line);
-      background: rgba(255,255,255,.92);
+    .notice {
+      border: 1px solid var(--blue-3);
       border-radius: 8px;
-      display: grid;
-      grid-template-columns: 34px minmax(0, 1fr);
-      align-items: center;
-      gap: 10px;
-      padding: 9px;
+      background: var(--blue-2);
+      color: #1e3a8a;
+      padding: 10px 11px;
+      font-size: 12.5px;
+      line-height: 1.45;
+      margin-bottom: 12px;
     }
+
+    .table-wrap {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      overflow: auto;
+      max-width: 100%;
+      max-height: 262px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+      font-size: 13px;
+    }
+
+    th, td {
+      padding: 10px 9px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: middle;
+    }
+
+    tr:last-child td { border-bottom: 0; }
+
+    th {
+      background: #f8fbff;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 740;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+
+    .col-icon { width: 52px; }
+    .col-kind { width: 90px; }
+    .col-state { width: 86px; }
+
+    .truncate {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .badge {
+      min-height: 24px;
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 0 8px;
+      border: 1px solid transparent;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .badge.added { color: #1d4ed8; background: var(--blue-2); border-color: var(--blue-3); }
+    .badge.kept { color: var(--green); background: var(--green-2); border-color: #bbf7d0; }
+    .badge.missed { color: var(--red); background: var(--red-2); border-color: #ffd1cd; }
+    .badge.mapped { color: #155e75; background: #ecfeff; border-color: #bae6fd; }
 
     .icon-frame {
       width: 30px;
       height: 30px;
-      border-radius: 50%;
-      background: white;
-      border: 1px solid rgba(23,33,29,.1);
+      border-radius: 8px;
       display: grid;
       place-items: center;
-      overflow: hidden;
       position: relative;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      background: linear-gradient(180deg, #fff, #eef5ff);
       color: var(--blue);
       font-size: 10px;
       font-weight: 800;
@@ -336,110 +455,63 @@
       display: block;
       position: relative;
       z-index: 1;
-      background: white;
+      background: #fff;
     }
 
     .icon-frame img.is-broken { display: none; }
-
     .icon-fallback {
       position: absolute;
       inset: 0;
       display: grid;
       place-items: center;
-      background: linear-gradient(135deg, #eff6ff, #dbeafe);
     }
 
-    .rule b {
-      display: block;
-      font-size: 13px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+    .rule-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 14px;
     }
 
-    .rule span {
-      display: block;
-      color: var(--muted);
-      font-size: 12px;
-      margin-top: 2px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .table-wrap {
+    .rule {
+      min-width: 0;
+      display: grid;
+      grid-template-columns: 32px minmax(0, 1fr);
+      align-items: center;
+      gap: 8px;
       border: 1px solid var(--line);
       border-radius: 8px;
-      overflow: hidden;
-      background: var(--paper);
-      max-width: 100%;
+      background: rgba(255,255,255,.86);
+      padding: 8px;
     }
 
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      table-layout: fixed;
-      font-size: 13px;
-    }
-
-    th, td {
-      border-bottom: 1px solid var(--line);
-      padding: 10px 9px;
-      text-align: left;
-      vertical-align: middle;
-    }
-
-    th {
-      background: var(--field);
-      color: var(--muted);
-      font-weight: 700;
-    }
-
-    tr:last-child td { border-bottom: 0; }
-    .col-icon { width: 52px; }
-    .col-state { width: 86px; }
-    .col-type { width: 74px; }
-    .truncate {
+    .rule b,
+    .rule span {
+      display: block;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
 
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      min-height: 26px;
-      border-radius: 999px;
-      padding: 0 9px;
-      font-size: 12px;
-      border: 1px solid transparent;
-      white-space: nowrap;
-    }
-
-    .badge.added { background: var(--blue-2); color: #1d4ed8; border-color: #bfdbfe; }
-    .badge.kept { background: var(--green-2); color: #057a55; border-color: #bbf7d0; }
-    .badge.missed { background: #f8e4df; color: var(--red); border-color: #efc6be; }
-
-    .output {
-      min-height: 220px;
-      margin-top: 12px;
-    }
+    .rule b { font-size: 12.5px; }
+    .rule span { margin-top: 2px; color: var(--muted); font-size: 11.5px; }
 
     .toast {
       position: fixed;
       left: 50%;
       bottom: 18px;
-      transform: translateX(-50%) translateY(16px);
-      background: #14211c;
-      color: white;
+      max-width: min(520px, calc(100% - 32px));
+      transform: translateX(-50%) translateY(12px);
       border-radius: 8px;
-      padding: 12px 14px;
+      background: #0f172a;
+      color: #fff;
+      padding: 11px 13px;
       opacity: 0;
       pointer-events: none;
-      transition: opacity .2s ease, transform .2s ease;
-      max-width: min(520px, calc(100% - 32px));
-      box-shadow: 0 12px 30px rgba(0,0,0,.22);
-      font-size: 14px;
+      transition: opacity .18s ease, transform .18s ease;
+      box-shadow: 0 18px 40px rgba(15, 23, 42, .22);
+      font-size: 13px;
+      z-index: 20;
     }
 
     .toast.show {
@@ -447,20 +519,22 @@
       transform: translateX(-50%) translateY(0);
     }
 
-    @media (max-width: 980px) {
-      .layout { grid-template-columns: 1fr; }
-      textarea { min-height: 300px; }
+    @media (max-width: 1120px) {
+      .grid { grid-template-columns: 1fr; }
+      textarea { min-height: 340px; }
+      .table-wrap { max-height: 320px; }
+      .rule-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     }
 
-    @media (max-width: 640px) {
-      .shell { width: min(100% - 20px, 1240px); padding-top: 14px; }
-      .topbar { align-items: flex-start; flex-direction: column; }
-      .status-pill { white-space: normal; }
-      .stats { grid-template-columns: repeat(2, 1fr); }
-      .rules { grid-template-columns: 1fr; }
-      .input-row { grid-template-columns: 1fr; }
-      .tabs { grid-template-columns: 1fr; }
-      .panel-header { flex-direction: column; }
+    @media (max-width: 700px) {
+      .shell { width: min(100% - 20px, 1420px); padding-top: 10px; }
+      .appbar { align-items: stretch; flex-direction: column; }
+      .app-actions { justify-content: flex-start; }
+      .segmented, .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .source-tabs { flex-direction: column; }
+      .url-row { grid-template-columns: 1fr; }
+      .panel-head { align-items: flex-start; flex-direction: column; }
+      .rule-grid { grid-template-columns: 1fr; }
       table { min-width: 560px; }
       .table-wrap { overflow-x: auto; }
     }
@@ -468,85 +542,90 @@
 </head>
 <body>
   <main class="shell">
-    <header class="topbar">
+    <header class="appbar">
       <div class="brand">
-        <div class="brand-mark" aria-hidden="true">
+        <div class="mark" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none">
-            <path d="M6 7.5h12M6 12h12M6 16.5h7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            <path d="M16 15.5l1.5 1.5 3-3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M7 8.5h10M7 12h7M7 15.5h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M17.5 5.5l1.8 1.8-1.8 1.8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </div>
         <div>
-          <h1>Clash Icon Patch</h1>
-          <p>给订阅里缺失图标的策略组补上 YouTube、Disney+、Netflix 等 icon 字段。</p>
+          <h1>Policy Icon Patch</h1>
+          <p class="tagline">Clash / Stash 写入图标，Surfboard 生成策略组映射。</p>
         </div>
       </div>
-      <div class="status-pill" aria-live="polite"><span class="status-dot"></span><span id="statusText">等待配置导入</span></div>
+      <div class="app-actions">
+        <span class="pill"><span class="dot"></span><span id="statusText">等待配置</span></span>
+        <button class="ghost" id="loadSample" type="button">示例</button>
+      </div>
     </header>
 
-    <section class="layout">
+    <section class="grid">
       <article class="panel">
-        <div class="panel-header">
+        <div class="panel-head">
           <div>
-            <h2>导入订阅配置</h2>
-            <p class="hint">支持 Clash YAML。订阅 URL 若被浏览器 CORS 拦截，可以改用粘贴或上传。</p>
+            <h2 class="panel-title">输入</h2>
+            <p class="panel-note">自动识别 YAML 与 Surfboard / Surge 风格配置。</p>
           </div>
-          <button class="ghost" id="loadSample" type="button">载入示例</button>
+          <div class="segmented" aria-label="输出目标">
+            <button type="button" data-target="auto" aria-pressed="true">Auto</button>
+            <button type="button" data-target="clash" aria-pressed="false">Clash</button>
+            <button type="button" data-target="surfboard" aria-pressed="false">Surfboard</button>
+          </div>
         </div>
         <div class="panel-body">
-          <div class="tabs" role="tablist" aria-label="导入方式">
-            <button class="tab" type="button" role="tab" aria-selected="true" data-tab="paste">粘贴 YAML</button>
-            <button class="tab" type="button" role="tab" aria-selected="false" data-tab="url">订阅 URL</button>
-            <button class="tab" type="button" role="tab" aria-selected="false" data-tab="file">上传文件</button>
+          <div class="source-tabs" role="tablist" aria-label="导入方式">
+            <button type="button" role="tab" data-tab="paste" aria-selected="true">粘贴</button>
+            <button type="button" role="tab" data-tab="url" aria-selected="false">URL</button>
+            <button type="button" role="tab" data-tab="file" aria-selected="false">文件</button>
           </div>
 
           <div class="source-pane active" id="pane-paste">
-            <label for="yamlInput">Clash 配置内容</label>
-            <textarea id="yamlInput" spellcheck="false" placeholder="把机场订阅返回的 Clash YAML 粘贴到这里"></textarea>
+            <label for="configInput">配置内容</label>
+            <textarea id="configInput" spellcheck="false" placeholder="Clash YAML 或 Surfboard 配置"></textarea>
           </div>
 
           <div class="source-pane" id="pane-url">
             <label for="subUrl">订阅链接</label>
-            <div class="input-row">
-              <input id="subUrl" type="url" placeholder="https://example.com/sub?target=clash">
-              <button class="secondary" id="fetchUrl" type="button">拉取</button>
+            <div class="url-row">
+              <input id="subUrl" type="url" placeholder="https://example.com/profile">
+              <button id="fetchUrl" type="button">拉取</button>
             </div>
-            <p class="hint">纯前端只能访问允许跨域的订阅。失败时复制返回内容到“粘贴 YAML”即可继续。</p>
           </div>
 
           <div class="source-pane" id="pane-file">
-            <label for="fileInput">本地 YAML 文件</label>
-            <div class="file-drop">
-              <div>
-                <input id="fileInput" type="file" accept=".yaml,.yml,.txt,application/x-yaml,text/yaml,text/plain">
-                <p class="hint">选择 Clash 配置文件后会自动填入编辑区。</p>
-              </div>
+            <label for="fileInput">本地配置</label>
+            <div class="file-zone">
+              <input id="fileInput" type="file" accept=".yaml,.yml,.conf,.txt,application/x-yaml,text/yaml,text/plain">
             </div>
           </div>
 
           <div class="toolbar">
-            <button class="primary" id="patchBtn" type="button">补齐策略组图标</button>
-            <button class="secondary" id="copyBtn" type="button" disabled>复制结果</button>
-            <button class="secondary" id="downloadBtn" type="button" disabled>下载 YAML</button>
+            <button class="primary" id="patchBtn" type="button">处理配置</button>
+            <button id="copyBtn" type="button" disabled>复制结果</button>
+            <button id="downloadBtn" type="button" disabled>下载</button>
             <button class="ghost" id="clearBtn" type="button">清空</button>
           </div>
         </div>
       </article>
 
       <aside class="panel">
-        <div class="panel-header">
+        <div class="panel-head">
           <div>
-            <h2>补齐结果</h2>
-            <p class="hint">只修改 `proxy-groups` 里没有 `icon` 的策略组，已有图标会保留。</p>
+            <h2 class="panel-title">结果</h2>
+            <p class="panel-note" id="resultNote">Clash / Stash 会写入 `icon` 字段；Surfboard 输出映射清单。</p>
           </div>
         </div>
         <div class="panel-body">
           <div class="stats" aria-live="polite">
             <div class="stat"><strong id="statTotal">0</strong><span>策略组</span></div>
-            <div class="stat"><strong id="statAdded">0</strong><span>新增</span></div>
+            <div class="stat"><strong id="statAdded">0</strong><span>补齐</span></div>
             <div class="stat"><strong id="statKept">0</strong><span>保留</span></div>
             <div class="stat"><strong id="statMissed">0</strong><span>未匹配</span></div>
           </div>
+
+          <div class="notice" id="modeNotice">当前尚未导入配置。</div>
 
           <div class="table-wrap">
             <table>
@@ -554,23 +633,32 @@
                 <tr>
                   <th class="col-icon">图标</th>
                   <th>策略组</th>
-                  <th class="col-type">类型</th>
+                  <th class="col-kind">类型</th>
                   <th class="col-state">状态</th>
                 </tr>
               </thead>
               <tbody id="previewRows">
-                <tr><td colspan="4" class="hint">导入配置后会在这里预览前 80 个策略组。</td></tr>
+                <tr><td colspan="4" class="panel-note">处理后显示预览。</td></tr>
               </tbody>
             </table>
           </div>
 
-          <label for="outputYaml" style="margin-top:16px;">导出内容</label>
-          <textarea class="output" id="outputYaml" spellcheck="false" readonly placeholder="补齐后的 YAML 会显示在这里"></textarea>
-
-          <h2 style="margin:18px 0 0;font-size:16px;">内置匹配规则</h2>
-          <div class="rules" id="ruleList"></div>
+          <label for="outputText" style="margin-top:14px;">输出</label>
+          <textarea class="output-area" id="outputText" spellcheck="false" readonly></textarea>
         </div>
       </aside>
+    </section>
+
+    <section class="panel" style="margin-top:14px;">
+      <div class="panel-head">
+        <div>
+          <h2 class="panel-title">匹配库</h2>
+          <p class="panel-note">按策略组名称匹配，已有图标优先保留。</p>
+        </div>
+      </div>
+      <div class="panel-body">
+        <div class="rule-grid" id="ruleList"></div>
+      </div>
     </section>
   </main>
 
@@ -607,65 +695,55 @@
       { label: "Final", keys: ["final", "match", "漏网之鱼", "漏網之魚", "兜底"], icon: "https://cdn.simpleicons.org/target/CC0000" }
     ];
 
-    const SAMPLE = `proxies:
-  - name: 香港 01
+    const CLASH_SAMPLE = `proxies:
+  - name: HK 01
     type: ss
     server: hk.example.com
     port: 443
     cipher: aes-128-gcm
     password: demo
-  - name: 日本 Netflix 02
-    type: trojan
-    server: jp.example.com
-    port: 443
-    password: demo
-  - name: 美国 03
-    type: vmess
-    server: us.example.com
-    port: 443
-    uuid: 00000000-0000-0000-0000-000000000000
-    alterId: 0
-    cipher: auto
-    icon: https://flagcdn.com/w80/us.png
 proxy-groups:
   - name: YouTube
     type: select
-    proxies:
-      - 香港 01
-      - 日本 Netflix 02
-      - 美国 03
+    proxies: [HK 01, DIRECT]
   - name: Disney+
     type: select
-    proxies:
-      - 香港 01
-      - 日本 Netflix 02
-      - 美国 03
+    proxies: [HK 01, DIRECT]
   - name: Netflix
     type: select
     icon: https://cdn.simpleicons.org/netflix/E50914
-    proxies:
-      - 香港 01
-      - 日本 Netflix 02
-      - 美国 03
-  - name: OpenAI
-    type: select
-    proxies:
-      - 美国 03
-      - 日本 Netflix 02
+    proxies: [HK 01, DIRECT]
 rules:
   - DOMAIN-SUFFIX,youtube.com,YouTube
-  - DOMAIN-SUFFIX,disneyplus.com,Disney+
-  - DOMAIN-SUFFIX,netflix.com,Netflix
-  - DOMAIN-SUFFIX,openai.com,OpenAI
   - MATCH,YouTube
 `;
 
+    const SURFBOARD_SAMPLE = `[General]
+proxy-test-url = http://www.gstatic.com/generate_204
+
+[Proxy]
+HK 01 = ss, hk.example.com, 443, encrypt-method=aes-128-gcm, password=demo
+
+[Proxy Group]
+Proxy = select, HK 01, DIRECT
+YouTube = select, HK 01, DIRECT
+Disney+ = select, HK 01, DIRECT
+Netflix = select, HK 01, DIRECT
+OpenAI = select, HK 01, DIRECT
+
+[Rule]
+DOMAIN-SUFFIX,youtube.com,YouTube
+FINAL,Proxy
+`;
+
     const els = {
+      input: document.getElementById("configInput"),
+      output: document.getElementById("outputText"),
       status: document.getElementById("statusText"),
-      yamlInput: document.getElementById("yamlInput"),
-      output: document.getElementById("outputYaml"),
-      rows: document.getElementById("previewRows"),
       toast: document.getElementById("toast"),
+      rows: document.getElementById("previewRows"),
+      notice: document.getElementById("modeNotice"),
+      note: document.getElementById("resultNote"),
       copy: document.getElementById("copyBtn"),
       download: document.getElementById("downloadBtn"),
       stats: {
@@ -676,28 +754,9 @@ rules:
       }
     };
 
-    let patchedYaml = "";
-
-    function showToast(message, isError = false) {
-      els.toast.textContent = message;
-      els.toast.style.background = isError ? "#8f2f2a" : "#14211c";
-      els.toast.classList.add("show");
-      window.clearTimeout(showToast.timer);
-      showToast.timer = window.setTimeout(() => els.toast.classList.remove("show"), 3200);
-    }
-
-    function setStatus(message) {
-      els.status.textContent = message;
-    }
-
-    function switchTab(name) {
-      document.querySelectorAll(".tab").forEach(tab => {
-        tab.setAttribute("aria-selected", String(tab.dataset.tab === name));
-      });
-      document.querySelectorAll(".source-pane").forEach(pane => {
-        pane.classList.toggle("active", pane.id === `pane-${name}`);
-      });
-    }
+    let targetMode = "auto";
+    let outputText = "";
+    let outputExt = "yaml";
 
     function normalize(text) {
       return String(text || "")
@@ -707,72 +766,164 @@ rules:
         .trim();
     }
 
-    function iconForGroup(group) {
-      const haystack = normalize([group.name, group.type].filter(Boolean).join(" "));
-      return ICONS.find(rule => rule.keys.some(key => haystack.includes(normalize(key))));
-    }
-
-    function parseYaml(raw) {
-      if (typeof jsyaml === "undefined") {
-        throw new Error("YAML 解析库没有加载成功，请确认 vendor/js-yaml.min.js 文件存在。");
-      }
-      const decoded = maybeDecodeBase64(raw.trim());
-      return jsyaml.load(decoded);
-    }
-
     function maybeDecodeBase64(text) {
-      if (!text || /[\n:]/.test(text) || text.includes("proxies")) return text;
+      if (!text || /[\n:=\[]/.test(text) || text.includes("proxy-groups")) return text;
       try {
         const decoded = atob(text);
-        if (/proxies|proxy-groups|rules|server:/.test(decoded)) return decoded;
+        if (/proxy-groups|\\[Proxy Group\\]|\\[Proxy\\]|rules|server:/.test(decoded)) return decoded;
       } catch (error) {
         return text;
       }
       return text;
     }
 
-    function patchConfig(config) {
-      if (!config || !Array.isArray(config["proxy-groups"])) {
-        throw new Error("没有找到 `proxy-groups` 数组。请确认这是 Clash YAML 配置。");
+    function iconForName(name) {
+      const haystack = normalize(name);
+      return ICONS.find(rule => rule.keys.some(key => haystack.includes(normalize(key))));
+    }
+
+    function detectFormat(raw) {
+      const text = raw.trim();
+      if (/^\s*\[Proxy Group\]/mi.test(text) || /^\s*[^#;\n]+=\s*(select|url-test|fallback|load-balance)\s*,/mi.test(text)) return "surfboard";
+      try {
+        const parsed = jsyaml.load(maybeDecodeBase64(text));
+        if (parsed && Array.isArray(parsed["proxy-groups"])) return "clash";
+      } catch (error) {}
+      return "unknown";
+    }
+
+    function parseClash(raw) {
+      const parsed = jsyaml.load(maybeDecodeBase64(raw.trim()));
+      if (!parsed || !Array.isArray(parsed["proxy-groups"])) {
+        throw new Error("没有找到 `proxy-groups`。");
       }
+      return parsed;
+    }
 
+    function patchClash(raw) {
+      const config = structuredClone(parseClash(raw));
       const rows = [];
-      const clone = structuredClone(config);
-      let added = 0;
-      let kept = 0;
-      let missed = 0;
+      let added = 0, kept = 0, missed = 0;
 
-      clone["proxy-groups"].forEach(group => {
+      config["proxy-groups"].forEach(group => {
         const existing = typeof group.icon === "string" && group.icon.trim();
-        const match = existing ? null : iconForGroup(group);
-        let state = "missed";
+        const match = existing ? null : iconForName(group.name);
         let icon = existing || "";
         let label = "";
+        let state = "missed";
 
         if (existing) {
           kept += 1;
+          label = "保留";
           state = "kept";
-          label = "已有";
         } else if (match) {
           group.icon = match.icon;
           icon = match.icon;
           label = match.label;
-          added += 1;
           state = "added";
+          added += 1;
         } else {
           missed += 1;
         }
 
-        rows.push({
-          name: group.name || "(未命名策略组)",
-          type: group.type || "-",
-          icon,
-          label,
-          state
-        });
+        rows.push({ name: group.name || "(未命名)", kind: group.type || "-", icon, label, state });
       });
 
-      return { config: clone, rows, stats: { total: clone["proxy-groups"].length, added, kept, missed } };
+      const text = jsyaml.dump(config, { lineWidth: 140, noRefs: true, sortKeys: false, quotingType: '"' });
+      return {
+        rows,
+        text,
+        ext: "yaml",
+        stats: { total: rows.length, added, kept, missed },
+        notice: "Clash / Stash 模式：已把匹配到的图标写入 `proxy-groups[].icon`。",
+        status: `已处理 ${rows.length} 个 YAML 策略组`
+      };
+    }
+
+    function parseSurfboardGroups(raw) {
+      const lines = raw.replace(/\r\n?/g, "\n").split("\n");
+      const groups = [];
+      let inGroup = false;
+
+      lines.forEach((line, index) => {
+        const trimmed = line.trim();
+        if (/^\[[^\]]+\]$/.test(trimmed)) {
+          inGroup = /^\[Proxy Group\]$/i.test(trimmed);
+          return;
+        }
+        if (!inGroup || !trimmed || /^[#;]/.test(trimmed) || !trimmed.includes("=")) return;
+        const eqIndex = line.indexOf("=");
+        const name = line.slice(0, eqIndex).trim();
+        const value = line.slice(eqIndex + 1).trim();
+        const kind = value.split(",")[0]?.trim() || "-";
+        if (name) groups.push({ name, kind, line: index + 1 });
+      });
+      return groups;
+    }
+
+    function mapSurfboard(raw) {
+      const groups = parseSurfboardGroups(raw);
+      if (!groups.length) throw new Error("没有找到 `[Proxy Group]` 策略组。");
+
+      let added = 0, missed = 0;
+      const rows = groups.map(group => {
+        const match = iconForName(group.name);
+        if (match) added += 1;
+        else missed += 1;
+        return {
+          name: group.name,
+          kind: group.kind,
+          icon: match?.icon || "",
+          label: match?.label || "",
+          state: match ? "mapped" : "missed"
+        };
+      });
+
+      const map = {
+        format: "surfboard-icon-map",
+        note: "Surfboard 官方 profile format 使用 [Proxy Group]，当前工具不向原配置写入非官方 icon 字段。",
+        groups: rows.map(row => ({
+          name: row.name,
+          type: row.kind,
+          icon: row.icon || null,
+          matched: Boolean(row.icon)
+        }))
+      };
+
+      return {
+        rows,
+        text: JSON.stringify(map, null, 2),
+        ext: "json",
+        stats: { total: rows.length, added, kept: 0, missed },
+        notice: "Surfboard 模式：已解析 `[Proxy Group]` 并导出图标映射清单；不写入未见官方支持的 icon 字段。",
+        status: `已映射 ${added}/${rows.length} 个 Surfboard 策略组`
+      };
+    }
+
+    function processConfig() {
+      const raw = els.input.value.trim();
+      if (!raw) {
+        showToast("先导入配置。", true);
+        return;
+      }
+      try {
+        const format = targetMode === "auto" ? detectFormat(raw) : targetMode;
+        if (format === "unknown") throw new Error("无法识别配置格式。");
+        const result = format === "surfboard" ? mapSurfboard(raw) : patchClash(raw);
+        outputText = result.text;
+        outputExt = result.ext;
+        els.output.value = outputText;
+        els.copy.disabled = false;
+        els.download.disabled = false;
+        renderPreview(result.rows, result.stats);
+        els.notice.textContent = result.notice;
+        els.status.textContent = result.status;
+        els.note.textContent = format === "surfboard" ? "Surfboard 输出映射清单；Clash / Stash 才写入 icon 字段。" : "输出为已补齐 icon 字段的 YAML。";
+        showToast("处理完成。");
+      } catch (error) {
+        els.status.textContent = "处理失败";
+        showToast(error.message || "处理失败。", true);
+      }
     }
 
     function renderPreview(rows, stats) {
@@ -780,22 +931,43 @@ rules:
       els.stats.added.textContent = stats.added;
       els.stats.kept.textContent = stats.kept;
       els.stats.missed.textContent = stats.missed;
-
       if (!rows.length) {
-        els.rows.innerHTML = `<tr><td colspan="4" class="hint">没有可预览策略组。</td></tr>`;
+        els.rows.innerHTML = `<tr><td colspan="4" class="panel-note">没有可预览策略组。</td></tr>`;
         return;
       }
-
-      els.rows.innerHTML = rows.slice(0, 80).map(row => {
-        const stateText = row.state === "added" ? "已补齐" : row.state === "kept" ? "保留" : "未匹配";
-        const img = renderIcon(row.icon, row.label || row.name);
+      els.rows.innerHTML = rows.slice(0, 120).map(row => {
+        const stateText = row.state === "added" ? "已补齐" : row.state === "kept" ? "保留" : row.state === "mapped" ? "已映射" : "未匹配";
         return `<tr>
-          <td>${img}</td>
+          <td>${renderIcon(row.icon, row.label || row.name)}</td>
           <td><div class="truncate" title="${escapeAttr(row.name)}">${escapeHtml(row.name)}</div></td>
-          <td>${escapeHtml(row.type)}</td>
+          <td>${escapeHtml(row.kind || "-")}</td>
           <td><span class="badge ${row.state}">${stateText}</span></td>
         </tr>`;
       }).join("");
+    }
+
+    function renderRules() {
+      document.getElementById("ruleList").innerHTML = ICONS.map(rule => `
+        <div class="rule">
+          ${renderIcon(rule.icon, rule.label)}
+          <div>
+            <b>${escapeHtml(rule.label)}</b>
+            <span>${escapeHtml(rule.keys.slice(0, 4).join(" / "))}</span>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    function renderIcon(icon, label) {
+      const image = icon ? `<img src="${escapeAttr(icon)}" alt="" loading="lazy" onerror="this.classList.add('is-broken')">` : "";
+      return `<span class="icon-frame" aria-label="${escapeAttr(label || "图标")}">
+        <span class="icon-fallback">${escapeHtml(shortLabel(label))}</span>${image}
+      </span>`;
+    }
+
+    function shortLabel(value) {
+      const text = String(value || "?").replace(/[^\p{L}\p{N}+]/gu, "").trim();
+      return (text || "?").slice(0, 2);
     }
 
     function escapeHtml(value) {
@@ -812,132 +984,94 @@ rules:
       return escapeHtml(value).replace(/`/g, "&#096;");
     }
 
-    function shortLabel(value) {
-      const text = String(value || "?").replace(/[^\p{L}\p{N}+]/gu, "").trim();
-      return (text || "?").slice(0, 2);
-    }
-
-    function renderIcon(icon, label) {
-      const image = icon
-        ? `<img src="${escapeAttr(icon)}" alt="" loading="lazy" onerror="this.classList.add('is-broken')">`
-        : "";
-      return `<span class="icon-frame" aria-label="${escapeAttr(label || "图标")}">
-        <span class="icon-fallback">${escapeHtml(shortLabel(label))}</span>${image}
-      </span>`;
-    }
-
-    function runPatch() {
-      const raw = els.yamlInput.value.trim();
-      if (!raw) {
-        showToast("先导入或粘贴 Clash YAML。", true);
-        return;
-      }
-
-      try {
-        const config = parseYaml(raw);
-        const result = patchConfig(config);
-        patchedYaml = jsyaml.dump(result.config, {
-          lineWidth: 140,
-          noRefs: true,
-          sortKeys: false,
-          quotingType: '"'
-        });
-        els.output.value = patchedYaml;
-        els.copy.disabled = false;
-        els.download.disabled = false;
-        renderPreview(result.rows, result.stats);
-        setStatus(`已处理 ${result.stats.total} 个策略组，补齐 ${result.stats.added} 个`);
-        showToast("图标补齐完成。");
-      } catch (error) {
-        showToast(error.message || "解析失败，请检查 YAML。", true);
-        setStatus("解析失败");
-      }
+    function showToast(message, isError = false) {
+      els.toast.textContent = message;
+      els.toast.style.background = isError ? "#991b1b" : "#0f172a";
+      els.toast.classList.add("show");
+      window.clearTimeout(showToast.timer);
+      showToast.timer = window.setTimeout(() => els.toast.classList.remove("show"), 2600);
     }
 
     async function fetchSubscription() {
       const url = document.getElementById("subUrl").value.trim();
-      if (!url) {
-        showToast("先输入订阅链接。", true);
-        return;
-      }
-
-      setStatus("正在拉取订阅");
+      if (!url) return showToast("先输入 URL。", true);
+      els.status.textContent = "正在拉取";
       try {
-        const response = await fetch(url, { method: "GET" });
-        if (!response.ok) throw new Error(`订阅返回 HTTP ${response.status}`);
-        const text = await response.text();
-        els.yamlInput.value = maybeDecodeBase64(text);
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        els.input.value = maybeDecodeBase64(await response.text());
         switchTab("paste");
-        setStatus("订阅已导入");
-        showToast("订阅内容已导入编辑区。");
+        els.status.textContent = "已导入 URL";
+        showToast("已导入。");
       } catch (error) {
-        setStatus("订阅拉取失败");
-        showToast("浏览器无法拉取这个订阅，可能是 CORS 限制。请粘贴返回的 YAML 内容。", true);
+        els.status.textContent = "拉取失败";
+        showToast("浏览器无法读取该 URL，通常是 CORS 限制。", true);
       }
     }
 
-    function downloadYaml() {
-      if (!patchedYaml) return;
-      const blob = new Blob([patchedYaml], { type: "text/yaml;charset=utf-8" });
+    function switchTab(name) {
+      document.querySelectorAll(".source-tabs button").forEach(btn => {
+        btn.setAttribute("aria-selected", String(btn.dataset.tab === name));
+      });
+      document.querySelectorAll(".source-pane").forEach(pane => {
+        pane.classList.toggle("active", pane.id === `pane-${name}`);
+      });
+    }
+
+    function setTarget(mode) {
+      targetMode = mode;
+      document.querySelectorAll(".segmented button").forEach(btn => {
+        btn.setAttribute("aria-pressed", String(btn.dataset.target === mode));
+      });
+      els.status.textContent = mode === "auto" ? "自动识别" : mode === "surfboard" ? "Surfboard 模式" : "Clash 模式";
+    }
+
+    function clearAll() {
+      els.input.value = "";
+      els.output.value = "";
+      outputText = "";
+      els.copy.disabled = true;
+      els.download.disabled = true;
+      els.notice.textContent = "当前尚未导入配置。";
+      els.note.textContent = "Clash / Stash 会写入 `icon` 字段；Surfboard 输出映射清单。";
+      els.status.textContent = "等待配置";
+      renderPreview([], { total: 0, added: 0, kept: 0, missed: 0 });
+    }
+
+    function downloadOutput() {
+      if (!outputText) return;
+      const blob = new Blob([outputText], { type: outputExt === "json" ? "application/json;charset=utf-8" : "text/yaml;charset=utf-8" });
       const link = document.createElement("a");
       link.href = URL.createObjectURL(blob);
-      link.download = "clash-with-icons.yaml";
+      link.download = outputExt === "json" ? "surfboard-icon-map.json" : "policy-icons.yaml";
       document.body.appendChild(link);
       link.click();
       link.remove();
       URL.revokeObjectURL(link.href);
-      showToast("已生成下载文件。");
     }
 
-    function clearAll() {
-      els.yamlInput.value = "";
-      els.output.value = "";
-      patchedYaml = "";
-      els.copy.disabled = true;
-      els.download.disabled = true;
-      renderPreview([], { total: 0, added: 0, kept: 0, missed: 0 });
-      setStatus("等待配置导入");
-    }
-
-    function renderRules() {
-      document.getElementById("ruleList").innerHTML = ICONS.map(rule => `
-        <div class="rule">
-          ${renderIcon(rule.icon, rule.label)}
-          <div>
-            <b>${escapeHtml(rule.label)}</b>
-            <span>${escapeHtml(rule.keys.slice(0, 5).join(" / "))}</span>
-          </div>
-        </div>
-      `).join("");
-    }
-
-    document.querySelectorAll(".tab").forEach(tab => {
-      tab.addEventListener("click", () => switchTab(tab.dataset.tab));
-    });
-
-    document.getElementById("patchBtn").addEventListener("click", runPatch);
+    document.querySelectorAll(".source-tabs button").forEach(btn => btn.addEventListener("click", () => switchTab(btn.dataset.tab)));
+    document.querySelectorAll(".segmented button").forEach(btn => btn.addEventListener("click", () => setTarget(btn.dataset.target)));
+    document.getElementById("patchBtn").addEventListener("click", processConfig);
     document.getElementById("fetchUrl").addEventListener("click", fetchSubscription);
-    document.getElementById("downloadBtn").addEventListener("click", downloadYaml);
     document.getElementById("clearBtn").addEventListener("click", clearAll);
-    document.getElementById("loadSample").addEventListener("click", () => {
-      els.yamlInput.value = SAMPLE;
-      switchTab("paste");
-      runPatch();
-    });
-
+    document.getElementById("downloadBtn").addEventListener("click", downloadOutput);
     document.getElementById("copyBtn").addEventListener("click", async () => {
-      if (!patchedYaml) return;
-      await navigator.clipboard.writeText(patchedYaml);
-      showToast("结果已复制。");
+      if (!outputText) return;
+      await navigator.clipboard.writeText(outputText);
+      showToast("已复制。");
     });
-
     document.getElementById("fileInput").addEventListener("change", async event => {
       const file = event.target.files && event.target.files[0];
       if (!file) return;
-      els.yamlInput.value = await file.text();
+      els.input.value = await file.text();
       switchTab("paste");
-      setStatus(`已导入 ${file.name}`);
-      showToast("文件内容已导入编辑区。");
+      els.status.textContent = `已导入 ${file.name}`;
+    });
+    document.getElementById("loadSample").addEventListener("click", () => {
+      els.input.value = targetMode === "surfboard" ? SURFBOARD_SAMPLE : CLASH_SAMPLE;
+      switchTab("paste");
+      processConfig();
     });
 
     renderRules();
