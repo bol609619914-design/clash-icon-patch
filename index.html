@@ -326,6 +326,42 @@
       gap: 8px;
     }
 
+    .url-help {
+      display: none;
+      margin-top: 10px;
+      border: 1px solid #fecaca;
+      border-radius: 8px;
+      background: #fff7f7;
+      color: #7f1d1d;
+      padding: 11px;
+      font-size: 12.5px;
+      line-height: 1.5;
+    }
+
+    .url-help.show { display: block; }
+
+    .url-help code {
+      display: block;
+      margin-top: 8px;
+      border: 1px solid #fecaca;
+      border-radius: 6px;
+      background: #fff;
+      color: #111827;
+      padding: 8px;
+      font-family: var(--mono);
+      font-size: 11.5px;
+      line-height: 1.45;
+      overflow-x: auto;
+      white-space: nowrap;
+    }
+
+    .url-help-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
     .file-zone {
       min-height: 158px;
       border: 1px dashed var(--line-strong);
@@ -632,6 +668,15 @@
               <input id="subUrl" type="url" placeholder="https://example.com/profile">
               <button id="fetchUrl" type="button">拉取</button>
             </div>
+            <div class="url-help" id="urlHelp" aria-live="polite">
+              <strong>浏览器无法直接读取这个订阅链接。</strong>
+              <div>这通常是订阅服务器没有允许 GitHub Pages 跨域访问。你可以在新标签打开链接，复制返回内容后粘贴到“粘贴”里；也可以在本机终端运行下面的命令，把输出复制回来。</div>
+              <code id="curlCommand"></code>
+              <div class="url-help-actions">
+                <button id="openUrlBtn" type="button">打开链接</button>
+                <button id="copyCurlBtn" type="button">复制命令</button>
+              </div>
+            </div>
           </div>
 
           <div class="source-pane" id="pane-file">
@@ -816,6 +861,8 @@ FINAL,Proxy
       download: document.getElementById("downloadBtn"),
       patchGroups: document.getElementById("patchGroups"),
       patchNodes: document.getElementById("patchNodes"),
+      urlHelp: document.getElementById("urlHelp"),
+      curlCommand: document.getElementById("curlCommand"),
       stats: {
         total: document.getElementById("statTotal"),
         added: document.getElementById("statAdded"),
@@ -1169,10 +1216,27 @@ FINAL,Proxy
       showToast.timer = window.setTimeout(() => els.toast.classList.remove("show"), 2600);
     }
 
+    function shellQuote(value) {
+      return `'${String(value).replace(/'/g, "'\\''")}'`;
+    }
+
+    function showUrlHelp(url) {
+      const command = `curl -L ${shellQuote(url)} -o subscription.yaml && cat subscription.yaml`;
+      els.curlCommand.textContent = command;
+      els.urlHelp.classList.add("show");
+      els.notice.textContent = "URL 拉取失败：这是浏览器跨域限制，不是配置解析失败。请打开链接或用本机 curl 获取内容后粘贴处理。";
+    }
+
+    function hideUrlHelp() {
+      els.urlHelp.classList.remove("show");
+      els.curlCommand.textContent = "";
+    }
+
     async function fetchSubscription() {
       const url = document.getElementById("subUrl").value.trim();
       if (!url) return showToast("先输入 URL。", true);
       els.status.textContent = "正在拉取";
+      hideUrlHelp();
       try {
         const response = await fetch(url);
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -1182,6 +1246,7 @@ FINAL,Proxy
         showToast("已导入。");
       } catch (error) {
         els.status.textContent = "拉取失败";
+        showUrlHelp(url);
         showToast("浏览器无法读取该 URL，通常是 CORS 限制。", true);
       }
     }
@@ -1212,6 +1277,7 @@ FINAL,Proxy
       els.notice.textContent = "当前尚未导入配置。";
       els.note.textContent = "Clash / Stash 会写入 `icon` 字段；Surfboard 输出映射清单。";
       els.status.textContent = "等待配置";
+      hideUrlHelp();
       renderPreview([], { total: 0, added: 0, kept: 0, missed: 0 });
     }
 
@@ -1231,6 +1297,16 @@ FINAL,Proxy
     document.querySelectorAll(".segmented button").forEach(btn => btn.addEventListener("click", () => setTarget(btn.dataset.target)));
     document.getElementById("patchBtn").addEventListener("click", processConfig);
     document.getElementById("fetchUrl").addEventListener("click", fetchSubscription);
+    document.getElementById("openUrlBtn").addEventListener("click", () => {
+      const url = document.getElementById("subUrl").value.trim();
+      if (url) window.open(url, "_blank", "noopener,noreferrer");
+    });
+    document.getElementById("copyCurlBtn").addEventListener("click", async () => {
+      const command = els.curlCommand.textContent.trim();
+      if (!command) return;
+      await navigator.clipboard.writeText(command);
+      showToast("命令已复制。");
+    });
     document.getElementById("clearBtn").addEventListener("click", clearAll);
     document.getElementById("downloadBtn").addEventListener("click", downloadOutput);
     document.getElementById("copyBtn").addEventListener("click", async () => {
