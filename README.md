@@ -26,7 +26,7 @@
 - 自动识别 Clash / Surfboard 格式
 - 保留已有 `icon`
 - 内置图标统一使用 Qure IconSet
-- 支持节点国旗补齐，按节点名和 server 识别 HK、JP、SG、US、TW 等地区
+- 支持节点国旗补齐，按节点名和 server 识别 HK、MO、TW、JP、SG、US、UK 等地区
 - 预览补齐结果
 - 一键复制或下载新的 YAML
 - 纯静态网页，无后端服务
@@ -35,7 +35,7 @@
 
 当前内置了常见策略组图标规则，包括：
 
-YouTube、Disney+、Netflix、TikTok、Spotify、Telegram、OpenAI、GitHub、Google、Apple、Microsoft、Amazon、HBO Max、Hulu、Bahamut、Bilibili、Twitter/X、Instagram、Facebook、PayPal、Crypto、Steam/游戏、下载、代理选择、直连、广告拦截、兜底规则等。
+YouTube、Disney+、Netflix、TikTok、Spotify、Telegram、OpenAI、GitHub、Google、Apple、Microsoft、Amazon、HBO Max、Hulu、Bahamut、Bilibili、Twitter/X、Instagram、Facebook、PayPal、Steam/游戏、下载、代理选择、直连、广告拦截、兜底规则等。
 
 ## 使用方式
 
